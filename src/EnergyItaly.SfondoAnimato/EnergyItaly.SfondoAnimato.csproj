@@ -9,6 +9,9 @@
     <ApplicationIcon>risorse\icona.ico</ApplicationIcon>
     <SatelliteResourceLanguages>it</SatelliteResourceLanguages>
     <NoWarn>$(NoWarn);SYSLIB1054</NoWarn>
+    <!-- Pubblicazione pulita: simboli dentro l'eseguibile, niente documentazione XML dei pacchetti. -->
+    <DebugType>embedded</DebugType>
+    <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\EnergyItaly.SfondoAnimato.Core\EnergyItaly.SfondoAnimato.Core.csproj" />
