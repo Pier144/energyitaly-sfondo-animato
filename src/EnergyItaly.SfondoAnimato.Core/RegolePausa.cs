@@ -22,8 +22,10 @@ public static class RegolePausa
         if (s.SfondoInterrotto) return new(LivelloPausa.Profonda, MotivoPausa.SfondoInterrotto);
         if (s.SessioneNonAttiva) return new(LivelloPausa.Profonda, MotivoPausa.SessioneNonAttiva);
         if (s.MonitorSpenti) return new(LivelloPausa.Profonda, MotivoPausa.MonitorSpenti);
-        if (s.SchermoIntero) return new(LivelloPausa.Profonda, MotivoPausa.SchermoIntero);
-        if (s.DesktopCoperto) return new(LivelloPausa.Profonda, MotivoPausa.DesktopCoperto);
+        // Leggera e non profonda: con la WebView nascosta, alla ripresa si vedrebbe lo sfondo di Windows
+        // e il movimento ripartirebbe in ritardo. Ferma sull'ultimo fotogramma non consuma quasi nulla.
+        if (s.SchermoIntero) return new(LivelloPausa.Leggera, MotivoPausa.SchermoIntero);
+        if (s.DesktopCoperto) return new(LivelloPausa.Leggera, MotivoPausa.DesktopCoperto);
         if (pausaManuale) return new(LivelloPausa.Leggera, MotivoPausa.Manuale);
         if (s.ABatteria && pausaABatteria) return new(LivelloPausa.Leggera, MotivoPausa.ABatteria);
         return DecisionePausa.Nessuna;

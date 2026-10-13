@@ -41,6 +41,19 @@ static class Win32
     public const int DWMWA_CLOAKED = 14;
     public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     public const int DWMWA_USE_IMMERSIVE_DARK_MODE_PRIMA_20H1 = 19;
+    public const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+    public const uint EVENT_SYSTEM_MOVESIZEEND = 0x000B;
+    public const uint EVENT_SYSTEM_MINIMIZESTART = 0x0016;
+    public const uint EVENT_SYSTEM_MINIMIZEEND = 0x0017;
+    public const uint EVENT_OBJECT_DESTROY = 0x8001;
+    public const uint EVENT_OBJECT_HIDE = 0x8003;
+    public const uint EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
+    public const uint EVENT_OBJECT_CLOAKED = 0x8017;
+    public const uint EVENT_OBJECT_UNCLOAKED = 0x8018;
+    public const uint WINEVENT_OUTOFCONTEXT = 0x0;
+    public const int OBJID_WINDOW = 0;
+    public const int CHILDID_SELF = 0;
+    public const uint GA_ROOT = 2;
     public static readonly Guid GUID_CONSOLE_DISPLAY_STATE = new("6FE69556-704A-47A0-8F24-C28D936FDA47");
     public static readonly Guid GUID_POWER_SAVING_STATUS = new("E00958C0-C213-4ACE-AC77-FECCED2EEEA5");
 
@@ -54,6 +67,7 @@ static class Win32
     public struct POWERBROADCAST_SETTING { public Guid PowerSetting; public uint DataLength; public uint Data; }
 
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    public delegate void WinEventProc(IntPtr hook, uint evento, IntPtr hWnd, int idOggetto, int idFiglio, uint thread, uint tempo);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(string? classe, string? titolo);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindowEx(IntPtr padre, IntPtr dopo, string? classe, string? titolo);
@@ -81,4 +95,7 @@ static class Win32
     [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hWnd, int attributo, ref int valore, int dimensione);
     [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool AllowSetForegroundWindow(int processo);
     [DllImport("shell32.dll")] public static extern int SHQueryUserNotificationState(out int stato);
+    [DllImport("user32.dll")] public static extern IntPtr SetWinEventHook(uint eventoMin, uint eventoMax, IntPtr modulo, WinEventProc callback, uint processo, uint thread, uint flags);
+    [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool UnhookWinEvent(IntPtr hook);
+    [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hWnd, uint tipo);
 }

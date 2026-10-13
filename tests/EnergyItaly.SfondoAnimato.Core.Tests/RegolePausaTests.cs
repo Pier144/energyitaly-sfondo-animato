@@ -11,8 +11,6 @@ public class RegolePausaTests
     }
 
     [Theory]
-    [InlineData(true, false, false, false, MotivoPausa.DesktopCoperto)]
-    [InlineData(false, true, false, false, MotivoPausa.SchermoIntero)]
     [InlineData(false, false, true, false, MotivoPausa.SessioneNonAttiva)]
     [InlineData(false, false, false, true, MotivoPausa.MonitorSpenti)]
     public void SegnaliGravi_PausaProfonda(bool coperto, bool schermoIntero, bool sessione, bool spenti, MotivoPausa motivo)
@@ -21,6 +19,27 @@ public class RegolePausaTests
 
         Assert.Equal(LivelloPausa.Profonda, d.Livello);
         Assert.Equal(motivo, d.Motivo);
+    }
+
+    // Come Wallpaper Engine: lo sfondo resta visibile e fermo sull'ultimo fotogramma, così quando il
+    // desktop riappare non si vede lo sfondo di Windows e il movimento riparte subito.
+    [Theory]
+    [InlineData(true, false, MotivoPausa.DesktopCoperto)]
+    [InlineData(false, true, MotivoPausa.SchermoIntero)]
+    [InlineData(true, true, MotivoPausa.SchermoIntero)]
+    public void DesktopNascostoDaAltreFinestre_PausaLeggera(bool coperto, bool schermoIntero, MotivoPausa motivo)
+    {
+        var d = RegolePausa.Valuta(new SegnaliSistema(coperto, schermoIntero), true, true);
+
+        Assert.Equal(new DecisionePausa(LivelloPausa.Leggera, motivo), d);
+    }
+
+    [Fact]
+    public void SchermoInteroESessioneBloccata_VinceLaProfonda()
+    {
+        var d = RegolePausa.Valuta(new SegnaliSistema(DesktopCoperto: true, SchermoIntero: true, SessioneNonAttiva: true), true, false);
+
+        Assert.Equal(new DecisionePausa(LivelloPausa.Profonda, MotivoPausa.SessioneNonAttiva), d);
     }
 
     [Fact]

@@ -114,12 +114,14 @@ Due livelli:
 
 | Requisito | Condizione | Livello |
 |---|---|---|
-| RF-30 (M) | Il desktop non è visibile su nessun monitor (finestre a schermo intero o massimizzate che coprono ogni monitor) | profonda |
-| RF-31 (M) | App a schermo intero Direct3D o modalità presentazione (`SHQueryUserNotificationState`) | profonda |
+| RF-30 (M) | Il desktop non è visibile su nessun monitor (finestre a schermo intero o massimizzate che coprono ogni monitor) | leggera |
+| RF-31 (M) | App a schermo intero Direct3D o modalità presentazione (`SHQueryUserNotificationState`) | leggera |
 | RF-32 (M) | Sessione bloccata, sessione remota disconnessa, cambio utente | profonda |
 | RF-33 (M) | Monitor spenti (`GUID_CONSOLE_DISPLAY_STATE`) | profonda |
 | RF-34 (S) | Alimentazione a batteria o risparmio energia attivo (configurabile, predefinito attivo) | leggera |
 | RF-35 (M) | Pausa manuale dal menu | leggera |
+
+RF-30 e RF-31 usano la pausa leggera, come Wallpaper Engine: con la WebView nascosta, quando il desktop riappare si vedrebbe per un istante lo sfondo di Windows e il movimento ripartirebbe in ritardo. Ferma sull'ultimo fotogramma e coperta, la WebView non consuma CPU (misurato: 0 ms in 8 s).
 
 - **RF-36 (M)** Uscendo dalla pausa l'animazione riprende senza ricaricare la pagina (salvo dopo una sospensione WebView, se necessario).
 
@@ -238,7 +240,7 @@ Prerequisito: sviluppare e testare sul PC di riferimento.
 | T5 | Scala 125% o 150% su un monitor | Proporzioni corrette, nessuna sfocatura, nessun ritaglio |
 | T6 | Riavvio di `explorer.exe` | Riaggancio automatico entro pochi secondi |
 | T7 | Finestra massimizzata su un solo monitor | L'animazione continua sull'altro monitor |
-| T8 | Gioco o video a schermo intero su tutti i monitor | Pausa profonda; ripresa all'uscita |
+| T8 | Gioco o video a schermo intero su tutti i monitor | Pausa leggera; all'uscita nessuno stacco e movimento subito ripreso |
 | T9 | Blocco sessione (Win+L) e sblocco | Pausa profonda e ripresa |
 | T10 | Portatile a batteria | Pausa leggera (se attiva nelle impostazioni) |
 | T11 | Misura risorse (Gestione attività, 10 minuti per animazione) | Entro RNF-01; annotare i valori per ogni animazione |
