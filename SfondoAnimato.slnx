@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/EnergyItaly.SfondoAnimato.Core/EnergyItaly.SfondoAnimato.Core.csproj" />
+    <Project Path="src/EnergyItaly.SfondoAnimato/EnergyItaly.SfondoAnimato.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EnergyItaly.SfondoAnimato.Core.Tests/EnergyItaly.SfondoAnimato.Core.Tests.csproj" />

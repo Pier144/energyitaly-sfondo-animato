@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>EnergyItaly.SfondoAnimato</RootNamespace>
+    <AssemblyName>SfondoAnimato</AssemblyName>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>risorse\icona.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>it</SatelliteResourceLanguages>
+    <NoWarn>$(NoWarn);SYSLIB1054</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EnergyItaly.SfondoAnimato.Core\EnergyItaly.SfondoAnimato.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="web\**" />
+    <None Remove="risorse\**" />
+    <None Remove="impostazioni-predefinite.json" />
+    <EmbeddedResource Include="risorse\icona.ico" LogicalName="icona.ico" />
+    <Content Include="web\**\*" Exclude="web\sviluppo\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\animazioni\**\*" Link="web\animazioni\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="impostazioni-predefinite.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- Il pacchetto WebView2 aggiunge anche la DLL per WPF: qui non serve e va in conflitto con WindowsBase (MSB3277). -->
+  <Target Name="EscludiWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+  </ItemGroup>
+</Project>

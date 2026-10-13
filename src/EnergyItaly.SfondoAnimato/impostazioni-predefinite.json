@@ -1,0 +1,12 @@
+{
+  "versione": 2,
+  "intervallo": { "valore": 30, "unita": "minuti" },
+  "rotazioneAttiva": true,
+  "fineVideo": true,
+  "ordine": "sequenziale",
+  "playlist": ["onda-di-luce", "onde-di-energia", "paesaggio-rinnovabile", "circuito", "aurora"],
+  "dissolvenzaSecondi": 2,
+  "modoMonitor": "estendi",
+  "pausaABatteria": true,
+  "avvioConWindows": true
+}
