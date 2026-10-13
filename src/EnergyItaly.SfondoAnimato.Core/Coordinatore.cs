@@ -342,7 +342,7 @@ public sealed class Coordinatore
         var validi = new List<(string Percorso, string Nome, EsitoImport Esito, long Dimensione)>();
         foreach (var percorso in percorsi)
         {
-            var nome = Path.GetFileName(percorso);
+            var nome = Importazione.NomeFile(percorso);
             long dimensione;
             try { dimensione = archivio.Dimensione(percorso); }
             catch (Exception ex)

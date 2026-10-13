@@ -38,9 +38,20 @@ public static class Importazione
         _ => 50 * MB
     };
 
+    /// <summary>
+    /// Nome del file senza cartelle. Riconosce sia la barra rovesciata sia la barra, così il Core dà
+    /// lo stesso risultato con i percorsi di Windows su qualunque sistema (fuori da Windows
+    /// Path.GetFileName non considera la barra rovesciata un separatore).
+    /// </summary>
+    public static string NomeFile(string percorso)
+    {
+        var i = percorso.LastIndexOfAny(['\\', '/']);
+        return i < 0 ? percorso : percorso[(i + 1)..];
+    }
+
     public static EsitoImport Valuta(string nomeOriginale, long dimensione, Func<string>? suffisso = null)
     {
-        var nome = Path.GetFileName(nomeOriginale ?? "");
+        var nome = NomeFile(nomeOriginale ?? "");
         var estensione = Path.GetExtension(nome).TrimStart('.').ToLowerInvariant();
         if (!Estensioni.TryGetValue(estensione, out var tipo))
             return EsitoImport.Scartato($"Formato non supportato: usa {FormatiAccettati}");
