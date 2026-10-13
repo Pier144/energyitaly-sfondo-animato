@@ -60,7 +60,7 @@ public class CatalogoTests
     public void UrlBase_CodificaIlNomeFile()
     {
         var v = new Voce("u-x-aaaaaa", TipoVoce.Html, "X", false, "pagina con spazi.html", new Dictionary<string, string>(), null, true);
-        Assert.Equal("https://libreria.energyitaly/pagina%20con%20spazi.html", Catalogo.UrlBase(v));
+        Assert.Equal("https://pagine.energyitaly/pagina%20con%20spazi.html", Catalogo.UrlBase(v));
     }
 
     [Fact]
@@ -140,6 +140,45 @@ public class CatalogoTests
         Assert.Empty(Catalogo.LeggiLibreria("""{ "versione": 7, "voci": [] }""", avvisi).Voci);
         Assert.Empty(Catalogo.LeggiLibreria(null, avvisi).Voci);
         Assert.Equal(2, avvisi.Count);
+    }
+
+    [Fact]
+    public void LeggiLibreria_VociDifettose_ScartateLeAltreRestano()
+    {
+        const string json = """
+            { "versione": 1, "voci": [
+              { "id": "u-buona-aaaaaa", "tipo": "immagine", "titolo": "Buona", "file": "buona.jpg" },
+              { "id": "u-data-bbbbbb", "tipo": "immagine", "titolo": "Data rotta", "file": "data.jpg", "importataIl": "boh" },
+              { "id": null, "tipo": "immagine", "titolo": "Senza id", "file": "x.jpg" },
+              7
+            ], "daCancellare": ["vecchio.mp4", 3] }
+            """;
+        var avvisi = new List<string>();
+
+        var dati = Catalogo.LeggiLibreria(json, avvisi, out var illeggibile);
+
+        Assert.False(illeggibile);
+        Assert.Equal("u-buona-aaaaaa", Assert.Single(dati.Voci).Id);
+        Assert.Equal(new[] { "vecchio.mp4" }, dati.DaCancellare);
+        Assert.Equal(4, avvisi.Count);
+    }
+
+    [Fact]
+    public void LeggiLibreria_JsonRotto_SegnalatoComeIlleggibile()
+    {
+        Catalogo.LeggiLibreria("{ rotto", [], out var illeggibile);
+        Assert.True(illeggibile);
+    }
+
+    [Fact]
+    public void Carica_VoceConIdNullo_NonSolleva()
+    {
+        var lib = Libreria(new VoceLibreria { Id = null!, Tipo = "immagine", Titolo = "X", File = "x.jpg" });
+
+        var (voci, avvisi) = Catalogo.Carica(Manifest, lib, _ => true);
+
+        Assert.Equal(2, voci.Count);
+        Assert.Single(avvisi);
     }
 
     [Theory]

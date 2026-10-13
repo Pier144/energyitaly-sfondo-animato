@@ -17,10 +17,30 @@ sealed class ArchivioFile : IArchivio
 
     public long Dimensione(string percorso) => new FileInfo(percorso).Length;
 
-    public void CopiaInLibreria(string percorsoOrigine, string nomeFile)
+    public void ConservaLibreriaIlleggibile()
+    {
+        if (File.Exists(Percorsi.FileLibreria))
+            File.Copy(Percorsi.FileLibreria, $"{Percorsi.FileLibreria}.illeggibile-{DateTime.Now:yyyyMMdd-HHmmss}", overwrite: false);
+    }
+
+    public async Task CopiaInLibreriaAsync(string percorsoOrigine, string nomeFile)
     {
         Directory.CreateDirectory(Percorsi.Libreria);
-        File.Copy(percorsoOrigine, Path.Combine(Percorsi.Libreria, nomeFile), overwrite: false);
+        var destinazione = Path.Combine(Percorsi.Libreria, nomeFile);
+        bool creato = false;
+        try
+        {
+            await using var origine = new FileStream(percorsoOrigine, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, useAsync: true);
+            await using var copia = new FileStream(destinazione, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
+            creato = true;
+            await origine.CopyToAsync(copia);
+        }
+        catch
+        {
+            // Una copia a metà non deve restare nella libreria.
+            if (creato) try { File.Delete(destinazione); } catch (IOException) { }
+            throw;
+        }
     }
 
     public void CancellaDaLibreria(string nomeFile)

@@ -52,7 +52,14 @@ public sealed class Coordinatore
     public void Avvia(IReadOnlyList<Monitor> monitorIniziali)
     {
         var avvisi = new List<string>();
-        libreria = Catalogo.LeggiLibreria(Leggi(archivio.LeggiLibreria, "libreria.json"), avvisi);
+        libreria = Catalogo.LeggiLibreria(Leggi(archivio.LeggiLibreria, "libreria.json"), avvisi, out var illeggibile);
+        if (illeggibile)
+        {
+            log.Errore("libreria.json illeggibile: ne conservo una copia e riparto con una libreria vuota");
+            try { archivio.ConservaLibreriaIlleggibile(); }
+            catch (Exception ex) { log.Errore($"Copia di libreria.json non riuscita: {ex.Message}"); }
+        }
+        RiprovaCancellazioni();
         RicaricaVoci(avvisi);
         var idValidi = voci.Select(v => v.Id).ToList();
         var playlistDiBase = voci.Where(v => v.Aziendale).Select(v => v.Id).ToList();
@@ -284,7 +291,12 @@ public sealed class Coordinatore
             return;
         }
         try { archivio.CancellaDaLibreria(voce.File); }
-        catch (Exception ex) { log.Errore($"File '{voce.File}' non cancellato: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            // Spesso è un video ancora aperto dal player: si riprova al prossimo avvio.
+            log.Avviso($"File '{voce.File}' non cancellato ({ex.Message}): riprovo al prossimo avvio");
+            libreria.DaCancellare.Add(voce.File);
+        }
         libreria.Voci.Remove(voce);
         SalvaLibreria();
         RicaricaVoci(null);
@@ -316,10 +328,18 @@ public sealed class Coordinatore
 
     // ---------- Importazione ----------
 
-    public void ImportaFile(IReadOnlyList<string> percorsi)
+    /// <summary>Soglia oltre la quale avvisa che la copia è in corso (i video possono essere grandi).</summary>
+    const long SogliaAvvisoImport = 20L * 1024 * 1024;
+
+    /// <summary>
+    /// Importa i file nella libreria. La copia è asincrona: l'interfaccia, la rotazione e il player
+    /// restano reattivi; il proseguimento torna sul thread chiamante.
+    /// </summary>
+    public async Task ImportaFileAsync(IReadOnlyList<string> percorsi)
     {
         var aggiunti = new List<string>();
         var scartati = new List<string>();
+        var validi = new List<(string Percorso, string Nome, EsitoImport Esito, long Dimensione)>();
         foreach (var percorso in percorsi)
         {
             var nome = Path.GetFileName(percorso);
@@ -332,12 +352,14 @@ public sealed class Coordinatore
                 continue;
             }
             var esito = Importazione.Valuta(nome, dimensione);
-            if (!esito.Valido)
-            {
-                scartati.Add($"{nome}: {esito.Motivo}");
-                continue;
-            }
-            try { archivio.CopiaInLibreria(percorso, esito.NomeFile); }
+            if (esito.Valido) validi.Add((percorso, nome, esito, dimensione));
+            else scartati.Add($"{nome}: {esito.Motivo}");
+        }
+
+        if (validi.Sum(x => x.Dimensione) > SogliaAvvisoImport) InviaAvviso($"Importazione in corso: {validi.Count} file");
+        foreach (var (percorso, nome, esito, _) in validi)
+        {
+            try { await archivio.CopiaInLibreriaAsync(percorso, esito.NomeFile); }
             catch (Exception ex)
             {
                 log.Errore($"Importazione: copia di '{percorso}' non riuscita ({ex.Message})");
@@ -448,6 +470,27 @@ public sealed class Coordinatore
     // ---------- Supporto ----------
 
     RegoleRotazione Regole() => new(imp.Intervallo, imp.FineVideo, imp.Ordine);
+
+    void RiprovaCancellazioni()
+    {
+        if (libreria.DaCancellare.Count == 0) return;
+        var rimasti = new List<string>();
+        foreach (var nome in libreria.DaCancellare)
+        {
+            try
+            {
+                archivio.CancellaDaLibreria(nome);
+                log.Info($"Cancellato il file rimasto dalla libreria: {nome}");
+            }
+            catch (Exception ex)
+            {
+                log.Avviso($"File '{nome}' ancora non cancellabile: {ex.Message}");
+                rimasti.Add(nome);
+            }
+        }
+        libreria.DaCancellare = rimasti;
+        SalvaLibreria();
+    }
 
     void RicaricaVoci(List<string>? avvisi)
     {

@@ -22,7 +22,7 @@ UninstallDisplayIcon={app}\{#Eseguibile}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-CloseApplications=yes
+CloseApplications=force
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 

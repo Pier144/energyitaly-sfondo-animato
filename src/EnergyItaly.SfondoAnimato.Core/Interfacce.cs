@@ -21,9 +21,12 @@ public interface IArchivio
     void ScriviImpostazioni(string json);
     string? LeggiLibreria();
     void ScriviLibreria(string json);
+    /// <summary>Salva da parte un libreria.json illeggibile prima che venga sovrascritto.</summary>
+    void ConservaLibreriaIlleggibile();
     bool EsisteInLibreria(string nomeFile);
     long Dimensione(string percorso);
-    void CopiaInLibreria(string percorsoOrigine, string nomeFile);
+    /// <summary>Copia senza bloccare l'interfaccia: i video possono arrivare a 2 GB.</summary>
+    Task CopiaInLibreriaAsync(string percorsoOrigine, string nomeFile);
     void CancellaDaLibreria(string nomeFile);
 }
 

@@ -15,6 +15,9 @@ sealed class FinestraMessaggi : NativeWindow, IDisposable
     public event Action<bool>? MonitorAccesi;
     public event Action<bool>? RisparmioEnergetico;
 
+    /// <summary>Windows o un installer (Restart Manager) chiedono di chiudere il programma.</summary>
+    public event Action? ChiusuraRichiesta;
+
     public FinestraMessaggi()
     {
         CreateHandle(new CreateParams { Caption = "EnergyItaly.SfondoAnimato.Messaggi", ExStyle = Win32.WS_EX_TOOLWINDOW });
@@ -31,6 +34,16 @@ sealed class FinestraMessaggi : NativeWindow, IDisposable
         if (m.Msg == WmTaskbarCreated)
         {
             ExplorerRiavviato?.Invoke();
+        }
+        else if (m.Msg == Win32.WM_QUERYENDSESSION)
+        {
+            // Si accetta sempre: lo stato è già salvato su disco a ogni cambiamento.
+            m.Result = (IntPtr)1;
+            return;
+        }
+        else if (m.Msg == Win32.WM_ENDSESSION && m.WParam != IntPtr.Zero)
+        {
+            ChiusuraRichiesta?.Invoke();
         }
         else if (m.Msg == Win32.WM_POWERBROADCAST && m.WParam.ToInt64() == Win32.PBT_POWERSETTINGCHANGE && m.LParam != IntPtr.Zero)
         {

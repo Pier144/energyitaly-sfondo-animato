@@ -233,12 +233,12 @@ public class CoordinatoreTests
     }
 
     [Fact]
-    public void Import_FileValido_AggiuntoAllaLibreriaNonAllaPlaylist()
+    public async Task Import_FileValido_AggiuntoAllaLibreriaNonAllaPlaylist()
     {
         var c = Avvia();
         archivio.FileDaImportare[@"C:\Foto\Foto mare.JPG"] = 1000;
 
-        c.ImportaFile([@"C:\Foto\Foto mare.JPG"]);
+        await c.ImportaFileAsync([@"C:\Foto\Foto mare.JPG"]);
 
         var (origine, nome) = Assert.Single(archivio.Copie);
         Assert.Equal(@"C:\Foto\Foto mare.JPG", origine);
@@ -251,12 +251,12 @@ public class CoordinatoreTests
     }
 
     [Fact]
-    public void Import_FormatoNonSupportatoEFileIllegibile_Avvisi()
+    public async Task Import_FormatoNonSupportatoEFileIllegibile_Avvisi()
     {
         var c = Avvia();
         archivio.FileDaImportare[@"C:\x\virus.exe"] = 10;
 
-        c.ImportaFile([@"C:\x\virus.exe", @"C:\x\sparito.png"]);
+        await c.ImportaFileAsync([@"C:\x\virus.exe", @"C:\x\sparito.png"]);
 
         Assert.Empty(archivio.Copie);
         var avviso = Assert.Single(app.Avvisi);
@@ -279,6 +279,59 @@ public class CoordinatoreTests
         Assert.Equal(new[] { "a" }, c.Impostazioni.Playlist);
         Assert.DoesNotContain("u-m-aaaaaa", archivio.Libreria);
         Assert.Contains("Eliminato dalla libreria: M", app.Avvisi);
+    }
+
+    [Fact]
+    public async Task Import_FileGrande_AvvisaERestaReattivoDuranteLaCopia()
+    {
+        var c = Avvia();
+        archivio.FileDaImportare[@"C:\Video\Clip.mp4"] = 300L * 1024 * 1024;
+        archivio.CopiaInCorso = new TaskCompletionSource();
+
+        var importazione = c.ImportaFileAsync([@"C:\Video\Clip.mp4"]);
+
+        Assert.False(importazione.IsCompleted);
+        Assert.Contains("Importazione in corso: 1 file", app.Avvisi);
+        c.DaApp(Comando(new { tipo = "successivo" }));
+        Assert.Equal("b", c.Corrente?.Id);
+
+        archivio.CopiaInCorso.SetResult();
+        await importazione;
+
+        Assert.Contains("Aggiunto alla libreria: Clip", app.Avvisi);
+        Assert.Equal(4, app.UltimoStato.GetProperty("voci").GetArrayLength());
+    }
+
+    [Fact]
+    public void Elimina_FileInUso_RiprovaAlProssimoAvvio()
+    {
+        archivio.Libreria = """{ "versione": 1, "voci": [ { "id": "u-m-aaaaaa", "tipo": "video", "titolo": "M", "file": "m.mp4" } ] }""";
+        archivio.FileLibreria.Add("m.mp4");
+        archivio.FileBloccati.Add("m.mp4");
+        var c = Avvia();
+
+        c.DaApp(Comando(new { tipo = "elimina", id = "u-m-aaaaaa" }));
+
+        Assert.Empty(archivio.Cancellati);
+        Assert.Contains("m.mp4", archivio.Libreria);
+        Assert.DoesNotContain("u-m-aaaaaa", archivio.Libreria);
+
+        archivio.FileBloccati.Clear();
+        var nuovo = new Coordinatore(Manifest, null, player, app, archivio, sistema, log, tempo);
+        nuovo.Avvia([Principale]);
+
+        Assert.Equal(new[] { "m.mp4" }, archivio.Cancellati);
+        Assert.DoesNotContain("m.mp4", archivio.Libreria);
+    }
+
+    [Fact]
+    public void Avvio_LibreriaIlleggibile_ConservaUnaCopiaPrimaDiSovrascriverla()
+    {
+        archivio.Libreria = "{ rotto";
+        Avvia();
+
+        Assert.Equal(1, archivio.CopieDiSicurezza);
+        Assert.Contains(log.Righe, r => r.StartsWith("ERRORE") && r.Contains("libreria.json"));
     }
 
     [Fact]

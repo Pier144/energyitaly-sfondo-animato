@@ -29,6 +29,9 @@ public sealed class DatiLibreria
 {
     public int Versione { get; set; } = 1;
     public List<VoceLibreria> Voci { get; set; } = [];
+
+    /// <summary>File eliminati dalla libreria che Windows non ha lasciato cancellare (erano in uso): si riprova all'avvio.</summary>
+    public List<string> DaCancellare { get; set; } = [];
 }
 
 /// <summary>Unisce le animazioni aziendali (manifest.json) e gli sfondi importati (libreria.json).</summary>
@@ -36,6 +39,12 @@ public static class Catalogo
 {
     public const string HostApp = "sfondo.energyitaly";
     public const string HostLibreria = "libreria.energyitaly";
+
+    /// <summary>
+    /// Host delle pagine HTML importate. Non è mappato su una cartella: ogni richiesta passa dal
+    /// programma, che la consegna con una Content-Security-Policy senza rete.
+    /// </summary>
+    public const string HostPagine = "pagine.energyitaly";
 
     static readonly JsonSerializerOptions Opzioni = new(JsonSerializerDefaults.Web)
     {
@@ -61,7 +70,7 @@ public static class Catalogo
                 avvisi.Add($"libreria.json: tipo '{v.Tipo}' non valido per '{v.Id}', voce ignorata");
                 continue;
             }
-            if (!v.Id.StartsWith("u-", StringComparison.Ordinal) || usati.Contains(v.Id))
+            if (v.Id is null || !v.Id.StartsWith("u-", StringComparison.Ordinal) || usati.Contains(v.Id))
             {
                 avvisi.Add($"libreria.json: id '{v.Id}' non valido o ripetuto, voce ignorata");
                 continue;
@@ -137,25 +146,65 @@ public static class Catalogo
         nome.IndexOfAny(['/', '\\', ':']) < 0 &&
         !nome.Contains("..", StringComparison.Ordinal);
 
-    public static DatiLibreria LeggiLibreria(string? json, List<string> avvisi)
+    public static DatiLibreria LeggiLibreria(string? json, List<string> avvisi) => LeggiLibreria(json, avvisi, out _);
+
+    /// <summary>
+    /// Lettura tollerante voce per voce: una voce difettosa viene scartata con un avviso, le altre restano.
+    /// <paramref name="illeggibile"/> è vero se il file intero non si può usare (JSON rotto o versione diversa).
+    /// </summary>
+    public static DatiLibreria LeggiLibreria(string? json, List<string> avvisi, out bool illeggibile)
     {
-        if (string.IsNullOrWhiteSpace(json)) return new DatiLibreria();
+        illeggibile = false;
+        var dati = new DatiLibreria();
+        if (string.IsNullOrWhiteSpace(json)) return dati;
+        JsonDocument doc;
         try
         {
-            var dati = JsonSerializer.Deserialize<DatiLibreria>(json, Opzioni);
-            if (dati is null || dati.Versione != 1)
-            {
-                avvisi.Add("libreria.json: versione non supportata, libreria vuota");
-                return new DatiLibreria();
-            }
-            dati.Voci = (dati.Voci ?? []).Where(v => v is not null).ToList();
-            return dati;
+            doc = JsonDocument.Parse(json);
         }
         catch (JsonException ex)
         {
             avvisi.Add($"libreria.json non leggibile ({ex.Message}): libreria vuota");
-            return new DatiLibreria();
+            illeggibile = true;
+            return dati;
         }
+        using (doc)
+        {
+            var r = doc.RootElement;
+            if (r.ValueKind != JsonValueKind.Object || !r.TryGetProperty("versione", out var v) ||
+                v.ValueKind != JsonValueKind.Number || !v.TryGetInt32(out var versione) || versione != 1)
+            {
+                avvisi.Add("libreria.json: versione non supportata, libreria vuota");
+                illeggibile = true;
+                return dati;
+            }
+            if (r.TryGetProperty("voci", out var voci) && voci.ValueKind == JsonValueKind.Array)
+            {
+                int n = 0;
+                foreach (var e in voci.EnumerateArray())
+                {
+                    n++;
+                    VoceLibreria? voce = null;
+                    try { voce = e.ValueKind == JsonValueKind.Object ? e.Deserialize<VoceLibreria>(Opzioni) : null; }
+                    catch (JsonException) { }
+                    if (voce is null || string.IsNullOrWhiteSpace(voce.Id))
+                    {
+                        avvisi.Add($"libreria.json: voce {n} non valida, ignorata");
+                        continue;
+                    }
+                    dati.Voci.Add(voce);
+                }
+            }
+            if (r.TryGetProperty("daCancellare", out var daCancellare) && daCancellare.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var e in daCancellare.EnumerateArray())
+                {
+                    if (e.ValueKind == JsonValueKind.String && NomeFileSicuro(e.GetString())) dati.DaCancellare.Add(e.GetString()!);
+                    else avvisi.Add("libreria.json: voce di 'daCancellare' non valida, ignorata");
+                }
+            }
+        }
+        return dati;
     }
 
     public static string ScriviLibreria(DatiLibreria dati) => JsonSerializer.Serialize(dati, Opzioni);
@@ -163,6 +212,7 @@ public static class Catalogo
     /// <summary>URL della voce sugli host virtuali, senza il parametro monitor.</summary>
     public static string UrlBase(Voce v)
     {
+        if (v.Tipo == TipoVoce.Html) return $"https://{HostPagine}/{Uri.EscapeDataString(v.File)}";
         if (v.Tipo != TipoVoce.Animazione) return $"https://{HostLibreria}/{Uri.EscapeDataString(v.File)}";
         var url = $"https://{HostApp}/animazioni/{Uri.EscapeDataString(v.File)}";
         if (v.Parametri.Count == 0) return url;

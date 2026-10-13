@@ -54,13 +54,22 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
         icona.Successivo += () => coord.Successivo();
         icona.AlternaPausa += () => coord.AlternaPausaManuale();
         icona.ApriLog += ApriCartellaLog;
-        icona.Esci += Esci;
+        icona.Esci += () =>
+        {
+            log.Info("Uscita richiesta dall'utente");
+            Esci();
+        };
 
         messaggi = new FinestraMessaggi();
         messaggi.ExplorerRiavviato += () =>
         {
             log.Info("Explorer riavviato: riaggancio lo sfondo");
             ProgrammaRicreazione(1500);
+        };
+        messaggi.ChiusuraRichiesta += () =>
+        {
+            log.Info("Chiusura richiesta da Windows o dall'installer");
+            Esci();
         };
         pausa = new GestorePausa(messaggi);
         pausa.Cambiati += segnali => coord.AggiornaSegnali(segnali);
@@ -178,8 +187,14 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
     {
         if (uscita) return;
         if (principale is null || principale.IsDisposed)
-            principale = new FinestraPrincipale(log, iconaApp, json => coord.DaApp(json), percorsi => coord.ImportaFile(percorsi));
+            principale = new FinestraPrincipale(log, iconaApp, json => coord.DaApp(json), Importa);
         principale.MostraInPrimoPiano();
+    }
+
+    async void Importa(IReadOnlyList<string> percorsi)
+    {
+        try { await coord.ImportaFileAsync(percorsi); }
+        catch (Exception ex) { log.Errore($"Importazione non riuscita: {ex}"); }
     }
 
     // ---------- Servizi di sistema ----------
@@ -215,7 +230,6 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
     {
         if (uscita) return;
         uscita = true;
-        log.Info("Uscita richiesta dall'utente");
         orologio.Stop();
         ricreazione.Stop();
         ritardoMonitor.Stop();

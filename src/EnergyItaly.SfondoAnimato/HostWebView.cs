@@ -77,8 +77,18 @@ sealed class HostWebView : IDisposable
         core.ProcessFailed += (_, e) =>
         {
             log.Errore($"WebView2: processo terminato ({e.ProcessFailedKind}, {e.Reason})");
-            // Il crash di una pagina importata in un iframe non richiede di ricreare tutto.
-            if (e.ProcessFailedKind != CoreWebView2ProcessFailedKind.FrameRenderProcessExited) ProcessoTerminato?.Invoke();
+            // GPU, utility e iframe vengono ripristinati da WebView2 da sola: si ricrea solo se la pagina o il browser sono persi.
+            switch (e.ProcessFailedKind)
+            {
+                case CoreWebView2ProcessFailedKind.BrowserProcessExited:
+                    AmbienteWebView.Azzera();
+                    ProcessoTerminato?.Invoke();
+                    break;
+                case CoreWebView2ProcessFailedKind.RenderProcessExited:
+                case CoreWebView2ProcessFailedKind.RenderProcessUnresponsive:
+                    ProcessoTerminato?.Invoke();
+                    break;
+            }
         };
         core.Navigate(url);
     }
@@ -94,10 +104,11 @@ sealed class HostWebView : IDisposable
         if (uri.Scheme is "data" or "blob" or "about") return;
         bool https = uri.Scheme == Uri.UriSchemeHttps;
         if (https && uri.Host.Equals(Catalogo.HostApp, StringComparison.OrdinalIgnoreCase)) return;
-        if (https && uri.Host.Equals(Catalogo.HostLibreria, StringComparison.OrdinalIgnoreCase))
+        if (https && uri.Host.Equals(Catalogo.HostLibreria, StringComparison.OrdinalIgnoreCase)) return;
+        if (https && uri.Host.Equals(Catalogo.HostPagine, StringComparison.OrdinalIgnoreCase))
         {
-            var estensione = Path.GetExtension(uri.AbsolutePath).ToLowerInvariant();
-            if (estensione is ".html" or ".htm") e.Response = PaginaImportataIsolata(uri);
+            // Host non mappato: le pagine importate arrivano solo da qui, sempre con la CSP senza rete.
+            e.Response = PaginaImportataIsolata(uri);
             return;
         }
         lock (hostBloccati)
@@ -111,8 +122,10 @@ sealed class HostWebView : IDisposable
     {
         var nome = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
         var percorso = Path.Combine(Percorsi.Libreria, nome);
-        if (!Catalogo.NomeFileSicuro(nome) || !File.Exists(percorso))
+        var estensione = Path.GetExtension(nome).ToLowerInvariant();
+        if (!Catalogo.NomeFileSicuro(nome) || estensione is not (".html" or ".htm") || !File.Exists(percorso))
             return ambiente!.CreateWebResourceResponse(null, 404, "Non trovato", "Content-Type: text/plain");
+        log.Info($"Pagina importata servita senza accesso alla rete: {nome}");
         var contenuto = new MemoryStream(File.ReadAllBytes(percorso));
         return ambiente!.CreateWebResourceResponse(contenuto, 200, "OK",
             $"Content-Type: text/html\nContent-Security-Policy: {PoliticaPagineImportate}\nCache-Control: no-store");
@@ -121,7 +134,7 @@ sealed class HostWebView : IDisposable
     static bool Consentito(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var u) &&
         (u.Scheme == "about" ||
-         (u.Scheme == Uri.UriSchemeHttps && (u.Host == Catalogo.HostApp || u.Host == Catalogo.HostLibreria)));
+         (u.Scheme == Uri.UriSchemeHttps && (u.Host == Catalogo.HostApp || u.Host == Catalogo.HostLibreria || u.Host == Catalogo.HostPagine)));
 
     public void Dispose()
     {

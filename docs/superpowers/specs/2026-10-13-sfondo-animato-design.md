@@ -55,9 +55,10 @@ Il C# è la **fonte di verità** dello stato (impostazioni, libreria, playlist, 
 | Host virtuale | Cartella | Contenuto |
 |---|---|---|
 | `https://sfondo.energyitaly/` | `web/` accanto all'eseguibile | `app/`, `player/`, `animazioni/` (copiata in build da `animazioni/` del repo) |
-| `https://libreria.energyitaly/` | `%APPDATA%\EnergyItaly\SfondoAnimato\libreria\` | file importati dall'utente |
+| `https://libreria.energyitaly/` | `%APPDATA%\EnergyItaly\SfondoAnimato\libreria\` | immagini e video importati dall'utente |
+| `https://pagine.energyitaly/` | nessuna (servito dal programma) | pagine HTML importate, sempre con la Content-Security-Policy senza rete |
 
-Origini diverse: una pagina HTML importata non può leggere né toccare il player o l'app.
+Origini diverse: una pagina HTML importata non può leggere né toccare il player o l'app. Le pagine HTML hanno un host non mappato su cartella perché WebView2 non lascia intercettare le richieste agli host mappati: solo così il programma può aggiungere la CSP a ogni pagina. `libreria.json` sta in `%APPDATA%\EnergyItaly\SfondoAnimato\`, fuori dalla cartella servita.
 
 **Isolamento di rete (entrambe le WebView):** un filtro `WebResourceRequested` su `*` lascia passare solo i due host virtuali (e gli schemi `data:` e `blob:`); ogni altra richiesta riceve una risposta 403 e il log registra l'host bloccato (una riga per host per sessione). Le animazioni aziendali sono già offline; per le pagine importate questo realizza la promessa "senza rete".
 

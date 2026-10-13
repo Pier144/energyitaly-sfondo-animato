@@ -28,6 +28,8 @@ static class Win32
     public const int WM_NCDESTROY = 0x82;
     public const int MA_NOACTIVATE = 3;
     public const int WM_POWERBROADCAST = 0x218;
+    public const int WM_QUERYENDSESSION = 0x11;
+    public const int WM_ENDSESSION = 0x16;
     public const int PBT_POWERSETTINGCHANGE = 0x8013;
     public const uint SPI_SETDESKWALLPAPER = 0x14;
     public const uint SPI_GETDESKWALLPAPER = 0x73;

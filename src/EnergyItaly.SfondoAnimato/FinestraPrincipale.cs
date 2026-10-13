@@ -10,7 +10,7 @@ sealed class FinestraPrincipale : Form
     static readonly Color Fondo = Color.FromArgb(0x07, 0x11, 0x1f);
 
     readonly ILog log;
-    readonly HostWebView web;
+    HostWebView web;
     readonly Action<string> daApp;
     readonly Action<IReadOnlyList<string>> importa;
     bool inizializzata;
@@ -21,8 +21,7 @@ sealed class FinestraPrincipale : Form
         this.log = log;
         this.daApp = daApp;
         this.importa = importa;
-        web = new HostWebView(log);
-        web.Messaggio += MessaggioRicevuto;
+        web = CreaWebView();
         Text = "Energy Italy Sfondo Animato";
         Icon = icona;
         BackColor = Fondo;
@@ -41,11 +40,34 @@ sealed class FinestraPrincipale : Form
         CenterToScreen();
     }
 
-    protected override async void OnShown(EventArgs e)
+    HostWebView CreaWebView()
+    {
+        var nuova = new HostWebView(log);
+        nuova.Messaggio += MessaggioRicevuto;
+        // Se il processo della WebView cade, la pagina si ricrea invece di restare bianca.
+        nuova.ProcessoTerminato += () => BeginInvoke(new Action(RicreaWebView));
+        return nuova;
+    }
+
+    void RicreaWebView()
+    {
+        if (chiusuraDefinitiva || IsDisposed) return;
+        log.Avviso("Finestra principale: ricreo la WebView dopo un errore del processo");
+        web.Dispose();
+        web = CreaWebView();
+        InizializzaWeb();
+    }
+
+    protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
         if (inizializzata) return;
         inizializzata = true;
+        InizializzaWeb();
+    }
+
+    async void InizializzaWeb()
+    {
         try
         {
             await web.InizializzaAsync(Handle, ClientRectangle, scalaFissa: false, Fondo, $"https://{Catalogo.HostApp}/app/index.html");
@@ -117,7 +139,8 @@ sealed class FinestraPrincipale : Form
             switch (Messaggi.LeggiComandoApp(json)?.Tipo)
             {
                 case "importaDialogo":
-                    ApriDialogoImport();
+                    // Mai un dialogo modale dentro un evento della WebView2: lo si apre dopo.
+                    BeginInvoke(new Action(ApriDialogoImport));
                     break;
                 case "importaFile":
                     var percorsi = e.AdditionalObjects?.OfType<CoreWebView2File>().Select(f => f.Path).ToList() ?? [];

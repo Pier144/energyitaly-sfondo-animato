@@ -39,15 +39,33 @@ sealed class ArchivioFalso : IArchivio
     public Dictionary<string, long> FileDaImportare { get; } = [];
     public List<(string Origine, string Nome)> Copie { get; } = [];
     public List<string> Cancellati { get; } = [];
+    public HashSet<string> FileBloccati { get; } = [];
+    public int CopieDiSicurezza { get; private set; }
+
+    /// <summary>Se impostato, le copie restano in corso finché il test non lo completa.</summary>
+    public TaskCompletionSource? CopiaInCorso { get; set; }
 
     public string? LeggiImpostazioni() => Impostazioni;
     public void ScriviImpostazioni(string json) => Impostazioni = json;
     public string? LeggiLibreria() => Libreria;
     public void ScriviLibreria(string json) => Libreria = json;
+    public void ConservaLibreriaIlleggibile() => CopieDiSicurezza++;
     public bool EsisteInLibreria(string nomeFile) => FileLibreria.Contains(nomeFile);
     public long Dimensione(string percorso) => FileDaImportare.TryGetValue(percorso, out var d) ? d : throw new FileNotFoundException(percorso);
-    public void CopiaInLibreria(string percorsoOrigine, string nomeFile) { Copie.Add((percorsoOrigine, nomeFile)); FileLibreria.Add(nomeFile); }
-    public void CancellaDaLibreria(string nomeFile) { Cancellati.Add(nomeFile); FileLibreria.Remove(nomeFile); }
+
+    public async Task CopiaInLibreriaAsync(string percorsoOrigine, string nomeFile)
+    {
+        if (CopiaInCorso is not null) await CopiaInCorso.Task;
+        Copie.Add((percorsoOrigine, nomeFile));
+        FileLibreria.Add(nomeFile);
+    }
+
+    public void CancellaDaLibreria(string nomeFile)
+    {
+        if (FileBloccati.Contains(nomeFile)) throw new IOException($"{nomeFile} è in uso");
+        Cancellati.Add(nomeFile);
+        FileLibreria.Remove(nomeFile);
+    }
 }
 
 sealed class SistemaFalso : ISistema
