@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Prova del player</title>
+<style>
+body { margin: 0; padding: 16px; background: #07111f; color: #e8eef6; font: 14px "Segoe UI", sans-serif; display: flex; flex-direction: column; gap: 12px; }
+h1 { margin: 0; font-size: 18px; }
+#cornice { position: relative; width: 960px; height: 272px; overflow: hidden; outline: 1px solid #22395a; }
+#player { position: absolute; top: 0; left: 0; width: 3840px; height: 1087px; border: 0; transform: scale(.25); transform-origin: 0 0; }
+.comandi { display: flex; flex-wrap: wrap; gap: 8px; }
+button { min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #22395a; background: #0c1b31; color: inherit; cursor: pointer; }
+#registro { font: 12px Consolas, monospace; white-space: pre-wrap; max-height: 220px; overflow: auto; background: #0c1b31; padding: 8px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Prova del player (scala 1:4 del PC di riferimento, 3840x1087)</h1>
+<div id="cornice"><iframe id="player" src="../player/player.html" title="Player"></iframe></div>
+<div class="comandi" id="voci"></div>
+<div class="comandi">
+  <button type="button" data-modo="estendi">Estendi</button>
+  <button type="button" data-modo="duplica">Duplica</button>
+  <button type="button" id="pausa">Pausa</button>
+  <button type="button" id="riprendi">Riprendi</button>
+  <button type="button" id="un-monitor">Layout: un monitor</button>
+  <button type="button" id="due-monitor">Layout: due monitor</button>
+  <button type="button" id="rotto">Voce rotta</button>
+</div>
+<div id="registro"></div>
+<script>
+(async function () {
+  'use strict';
+  const player = document.getElementById('player');
+  const registro = document.getElementById('registro');
+  const DUE = [{ x: 0, y: 7, w: 1920, h: 1080 }, { x: 1920, y: 0, w: 1920, h: 1080 }];
+  const UNO = [{ x: 0, y: 0, w: 1920, h: 1080 }];
+  let modo = 'estendi';
+  let monitor = DUE;
+  let ultima = null;
+
+  function modoEffettivo() { return monitor.length === 1 ? 'estendi' : modo; }
+  function scene() {
+    if (modoEffettivo() === 'estendi') {
+      const w = Math.max(...monitor.map((m) => m.x + m.w));
+      const h = Math.max(...monitor.map((m) => m.y + m.h));
+      return [{ area: { x: 0, y: 0, w, h }, monitor }];
+    }
+    return monitor.map((m) => ({ area: m, monitor: [{ x: 0, y: 0, w: m.w, h: m.h }] }));
+  }
+  function scrivi(t) { registro.textContent = t + '\n' + registro.textContent; }
+  function invia(m) { player.contentWindow.postMessage({ alPlayer: m }, '*'); scrivi('-> ' + JSON.stringify(m).slice(0, 180)); }
+  function mostra(v) {
+    ultima = v;
+    invia({ tipo: 'mostra', id: v.id, tipoVoce: v.tipoVoce, url: v.url, modo: modoEffettivo(), scene: scene(), dissolvenzaMs: 2000, fineVideo: true });
+  }
+
+  const manifest = await (await fetch('/animazioni/manifest.json')).json();
+  const voci = manifest.animazioni.map((a) => ({
+    id: a.id, titolo: a.titolo, tipoVoce: 'animazione',
+    url: '/animazioni/' + a.file + '?' + new URLSearchParams(Object.entries(a.parametri).map(([k, v]) => [k, String(v)]))
+  }));
+  voci.push({ id: 'logo', titolo: 'Immagine (logo)', tipoVoce: 'immagine', url: '/animazioni/img/brand/LogoEnergyItalyWhite.svg' });
+
+  const contenitore = document.getElementById('voci');
+  voci.forEach((v) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = v.titolo;
+    b.onclick = () => mostra(v);
+    contenitore.appendChild(b);
+  });
+  document.querySelectorAll('[data-modo]').forEach((b) => {
+    b.onclick = () => { modo = b.dataset.modo; if (ultima) invia({ tipo: 'layout', modo: modoEffettivo(), scene: scene() }); };
+  });
+  document.getElementById('pausa').onclick = () => invia({ tipo: 'pausa' });
+  document.getElementById('riprendi').onclick = () => invia({ tipo: 'riprendi' });
+  document.getElementById('un-monitor').onclick = () => { monitor = UNO; invia({ tipo: 'layout', modo: modoEffettivo(), scene: scene() }); };
+  document.getElementById('due-monitor').onclick = () => { monitor = DUE; invia({ tipo: 'layout', modo: modoEffettivo(), scene: scene() }); };
+  document.getElementById('rotto').onclick = () => mostra({ id: 'rotto', titolo: 'Rotto', tipoVoce: 'immagine', url: '/non-esiste.png' });
+
+  window.addEventListener('message', (e) => {
+    if (e.source !== player.contentWindow || !e.data || !e.data.dalPlayer) return;
+    scrivi('<- ' + JSON.stringify(e.data.dalPlayer));
+    if (e.data.dalPlayer.tipo === 'pronto') mostra(voci[0]);
+  });
+})();
+</script>
+</body>
+</html>
