@@ -403,9 +403,9 @@ public sealed class Coordinatore
 
     string DescriviMonitor()
     {
-        var elenco = string.Join(", ", disposizione.Monitor.Select(m =>
-            $"{m.Nome} {m.Area.L}x{m.Area.A} in ({m.Area.X},{m.Area.Y}){(m.Principale ? " principale" : "")}"));
         var f = disposizione.Finestra;
+        var elenco = string.Join(", ", disposizione.Monitor.Select(m =>
+            $"{m.Nome} {m.Area.L}x{m.Area.A} in ({f.X + m.Area.X},{f.Y + m.Area.Y}){(m.Principale ? " principale" : "")}"));
         return $"Monitor: {elenco}; finestra {f.L}x{f.A} da ({f.X},{f.Y}); modo {NomiJson.Di(disposizione.ModoEffettivo)}";
     }
 

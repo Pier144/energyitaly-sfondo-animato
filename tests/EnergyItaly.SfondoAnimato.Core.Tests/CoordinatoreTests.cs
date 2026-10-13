@@ -48,6 +48,13 @@ public class CoordinatoreTests
     }
 
     [Fact]
+    public void Avvio_LogDeiMonitorInCoordinateDelloSchermo()
+    {
+        Avvia();
+        Assert.Contains(log.Righe, r => r.Contains("DISPLAY1 1920x1080 in (-1920,7), DISPLAY2 1920x1080 in (0,0) principale"));
+    }
+
+    [Fact]
     public void Avvio_RiprendeDopoLUltimaVoce()
     {
         archivio.Impostazioni = """{ "versione": 2, "ultimaVoce": "b" }""";
