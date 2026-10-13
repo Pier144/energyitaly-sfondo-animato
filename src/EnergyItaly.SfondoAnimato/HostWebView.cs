@@ -118,17 +118,21 @@ sealed class HostWebView : IDisposable
         e.Response = ambiente!.CreateWebResourceResponse(null, 403, "Bloccato", "Content-Type: text/plain");
     }
 
+    // Il player controlla con fetch che la pagina esista prima di mostrarla (un iframe segnala "load"
+    // anche per un 404): solo la sua origine può leggere la risposta.
+    const string LetturaDalPlayer = $"Access-Control-Allow-Origin: https://{Catalogo.HostApp}";
+
     CoreWebView2WebResourceResponse PaginaImportataIsolata(Uri uri)
     {
         var nome = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
         var percorso = Path.Combine(Percorsi.Libreria, nome);
         var estensione = Path.GetExtension(nome).ToLowerInvariant();
         if (!Catalogo.NomeFileSicuro(nome) || estensione is not (".html" or ".htm") || !File.Exists(percorso))
-            return ambiente!.CreateWebResourceResponse(null, 404, "Non trovato", "Content-Type: text/plain");
+            return ambiente!.CreateWebResourceResponse(null, 404, "Non trovato", $"Content-Type: text/plain\n{LetturaDalPlayer}");
         log.Info($"Pagina importata servita senza accesso alla rete: {nome}");
         var contenuto = new MemoryStream(File.ReadAllBytes(percorso));
         return ambiente!.CreateWebResourceResponse(contenuto, 200, "OK",
-            $"Content-Type: text/html\nContent-Security-Policy: {PoliticaPagineImportate}\nCache-Control: no-store");
+            $"Content-Type: text/html\nContent-Security-Policy: {PoliticaPagineImportate}\nCache-Control: no-store\n{LetturaDalPlayer}");
     }
 
     static bool Consentito(string url) =>

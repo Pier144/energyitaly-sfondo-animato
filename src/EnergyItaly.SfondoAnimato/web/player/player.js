@@ -6,6 +6,7 @@
   const palco = document.getElementById('palco');
   const ponte = creaPonte();
   let corrente = null; // { dati, strato, elementi }
+  let visibile = null; // ultima voce mostrata davvero: il suo strato è ancora sul palco
   let inPausa = false;
 
   function creaPonte() {
@@ -48,7 +49,11 @@
       nodo.setAttribute('scrolling', 'no');
       nodo.setAttribute('tabindex', '-1');
       if (dati.tipoVoce === 'html') nodo.setAttribute('sandbox', 'allow-scripts');
-      pronto = new Promise((ok) => nodo.addEventListener('load', ok, { once: true }));
+      // L'evento load arriva anche per una pagina 404: lo stato lo dice solo una richiesta a parte.
+      pronto = Promise.all([
+        new Promise((ok) => nodo.addEventListener('load', ok, { once: true })),
+        primo ? verificaPagina(dati.url) : null
+      ]);
       nodo.src = dati.modo === 'estendi' ? conMonitor(dati.url, scena.monitor) : dati.url;
     } else if (dati.tipoVoce === 'immagine') {
       nodo = document.createElement('div');
@@ -89,6 +94,12 @@
     return { nodo, pronto };
   }
 
+  function verificaPagina(url) {
+    return fetch(url, { cache: 'no-store' }).then((r) => {
+      if (!r.ok) throw new Error('pagina non trovata (' + r.status + ')');
+    });
+  }
+
   function conLimite(promessa) {
     return Promise.race([
       promessa,
@@ -124,11 +135,11 @@
     creati.forEach((c) => strato.appendChild(c.nodo));
     palco.appendChild(strato);
     const voce = { dati, strato, elementi: creati.map((c) => c.nodo) };
-    const precedente = corrente;
     corrente = voce;
 
     conLimite(Promise.all(creati.map((c) => c.pronto))).then(() => {
       if (corrente !== voce) return;
+      visibile = voce;
       applicaPausa(voce, inPausa);
       if (durata === 0) strato.classList.add('visibile');
       else requestAnimationFrame(() => requestAnimationFrame(() => strato.classList.add('visibile')));
@@ -137,7 +148,8 @@
     }).catch((errore) => {
       strato.remove();
       if (corrente !== voce) return;
-      corrente = precedente;
+      // Non "precedente": se anche quella è fallita, il suo strato non c'è più.
+      corrente = visibile;
       ponte.invia({ tipo: 'errore', id: dati.id, messaggio: errore && errore.message ? errore.message : String(errore) });
     });
   }
@@ -146,7 +158,7 @@
     if (!corrente) return;
     const vecchi = corrente.dati;
     if (dati.modo !== vecchi.modo || dati.scene.length !== corrente.elementi.length) {
-      mostra(Object.assign({}, vecchi, { modo: dati.modo, scene: dati.scene, dissolvenzaMs: 0 }));
+      mostra(Object.assign({}, vecchi, { modo: dati.modo, scene: dati.scene }));
       return;
     }
     corrente.dati = Object.assign({}, vecchi, { scene: dati.scene });

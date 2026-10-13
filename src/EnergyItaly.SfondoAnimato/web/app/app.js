@@ -43,6 +43,7 @@
   let attesaAvviso = null;
   let chiavePalco = '';
   let daEliminare = null;
+  let fuocoPrimaDellaConferma = null;
   const cacheMiniature = new Map();
   const schedePlaylist = new Map();
   const schedeLibreria = new Map();
@@ -332,7 +333,7 @@
     if (!imp.rotazioneAttiva) {
       figura = el('div', { class: 'segnaposto-poi' }, icona('successivo', 22));
       testo = 'Solo quando premi Successivo';
-    } else if (imp.ordine === 'casuale') {
+    } else if (imp.ordine === 'casuale' && stato.playlist.filter((id) => { const v = voce(id); return v && v.disponibile; }).length > 1) {
       figura = el('div', { class: 'segnaposto-poi' }, icona('casuale', 22));
       testo = 'A sorpresa dalla playlist';
     } else {
@@ -541,6 +542,7 @@
   // ---------- Libreria ----------
   function chiediConferma(v) {
     daEliminare = v.id;
+    fuocoPrimaDellaConferma = document.activeElement;
     $('#conferma-titolo').textContent = `Eliminare ${v.titolo} dalla libreria?`;
     $('#conferma').hidden = false;
     $('#conferma-no').focus();
@@ -549,6 +551,10 @@
   function chiudiConferma() {
     $('#conferma').hidden = true;
     daEliminare = null;
+    // Il fuoco torna dove era prima del dialogo.
+    const torna = fuocoPrimaDellaConferma && fuocoPrimaDellaConferma.isConnected ? fuocoPrimaDellaConferma : $('#btn-importa');
+    fuocoPrimaDellaConferma = null;
+    if (torna) torna.focus();
   }
 
   function creaSchedaLibreria(id) {
@@ -726,9 +732,18 @@
     $('#conferma-no').addEventListener('click', chiudiConferma);
     $('#conferma-si').addEventListener('click', () => {
       if (daEliminare) ponte.invia({ tipo: 'elimina', id: daEliminare });
+      // La scheda della voce sta per sparire: il fuoco va su "Importa file".
+      fuocoPrimaDellaConferma = $('#btn-importa');
       chiudiConferma();
     });
-    $('#conferma').addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudiConferma(); });
+    $('#conferma').addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') chiudiConferma();
+      else if (e.key === 'Tab') {
+        // Il fuoco resta nel dialogo: Tab e Maiusc+Tab passano da un pulsante all'altro.
+        e.preventDefault();
+        ($('#conferma-no') === document.activeElement ? $('#conferma-si') : $('#conferma-no')).focus();
+      }
+    });
     $('#conferma').addEventListener('click', (e) => { if (e.target === e.currentTarget) chiudiConferma(); });
     collegaIntervallo();
     collegaTrascinamentoFile();

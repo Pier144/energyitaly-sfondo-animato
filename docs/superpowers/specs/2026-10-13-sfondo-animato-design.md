@@ -209,9 +209,9 @@ JSON con campo `tipo`. Host verso pagine con `PostWebMessageAsJson`; pagine vers
 
 **App -> host:** `pronta`, `mostra {id}`, `successivo`, `precedente`, `pausa`, `riprendi`, `impostazioni {modifiche}` (solo i campi cambiati), `playlist {ids}`, `importaDialogo`, `importaFile` (con oggetti `File` aggiuntivi), `elimina {id}`, `apriLog`, `ripristina`.
 
-**Host -> app:** `stato {...}` completo a ogni cambiamento (libreria, playlist, impostazioni, corrente, storicoVuoto, inPausa, motivoPausa, scadenzaMs o restanteMs se in pausa manuale, totaleMs, monitor, modoEffettivo), `avviso {testo}`. L'app conta i secondi da sola tra uno `stato` e l'altro.
+**Host -> app:** `stato {...}` completo a ogni cambiamento (voci, playlist, impostazioni, corrente, storicoVuoto, inPausa, pausaManuale, motivoPausa, restanteMs, totaleMs, contoAttivo, attendeFineVideo, finestra, monitor, modo, scene), `avviso {testo}`. L'app conta i secondi da sola tra uno `stato` e l'altro (solo se `contoAttivo`). Il formato esatto è in `Messaggi.cs`.
 
-**Host -> player:** `mostra {id, tipo, url, modo, scene, dissolvenzaMs, fineVideo}`, `pausa`, `riprendi`, `layout {modo, scene}`.
+**Host -> player:** `mostra {id, tipoVoce, url, modo, scene, dissolvenzaMs, fineVideo}`, `pausa`, `riprendi`, `layout {modo, scene}`.
 
 **Player -> host:** `pronto`, `mostrato {id}`, `errore {id, messaggio}`, `videoFinito {id}`, `durataVideo {id, secondi}`.
 
