@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Prova della finestra principale</title>
+<style>
+html, body { margin: 0; height: 100%; background: #000; }
+iframe { display: block; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<iframe id="app" src="../app/index.html" title="Finestra principale"></iframe>
+<script>
+(async function () {
+  'use strict';
+  // Simula il programma C#: stessa forma dei messaggi "stato" e "avviso" (Task 8).
+  // Parametro ?monitor=1|2|3 per provare disposizioni diverse.
+  const app = document.getElementById('app');
+  const manifest = await (await fetch('/animazioni/manifest.json')).json();
+  const voci = manifest.animazioni.map((a) => ({
+    id: a.id, tipoVoce: 'animazione', titolo: a.titolo, aziendale: true, durataSecondi: null, disponibile: true,
+    url: '/animazioni/' + a.file + '?' + new URLSearchParams(Object.entries(a.parametri).map(([k, v]) => [k, String(v)]))
+  }));
+  voci.push({ id: 'u-logo-aaaaaa', tipoVoce: 'immagine', titolo: 'Logo come immagine', aziendale: false, url: '/animazioni/img/brand/LogoEnergyItalyWhite.svg', durataSecondi: null, disponibile: true });
+  voci.push({ id: 'u-video-bbbbbb', tipoVoce: 'video', titolo: 'Timelapse ufficio', aziendale: false, url: '/non-esiste.mp4', durataSecondi: 160, disponibile: false });
+
+  const disposizioni = {
+    1: [{ nome: 'DISPLAY1', x: 0, y: 0, w: 1920, h: 1080, principale: true }],
+    2: [{ nome: 'DISPLAY1', x: 0, y: 7, w: 1920, h: 1080, principale: false }, { nome: 'DISPLAY2', x: 1920, y: 0, w: 1920, h: 1080, principale: true }],
+    3: [{ nome: 'DISPLAY1', x: 0, y: 7, w: 1920, h: 1080, principale: false }, { nome: 'DISPLAY2', x: 1920, y: 0, w: 1920, h: 1080, principale: true }, { nome: 'DISPLAY3', x: 3840, y: 3, w: 1920, h: 1080, principale: false }]
+  };
+  const monitor = disposizioni[new URLSearchParams(location.search).get('monitor') || '2'] || disposizioni[2];
+  const finestra = { w: Math.max(...monitor.map((m) => m.x + m.w)), h: Math.max(...monitor.map((m) => m.y + m.h)) };
+
+  const s = {
+    tipo: 'stato', voci, playlist: voci.filter((v) => v.aziendale).map((v) => v.id),
+    impostazioni: { intervalloValore: 30, intervalloUnita: 'minuti', rotazioneAttiva: true, fineVideo: true, ordine: 'sequenziale', dissolvenzaSecondi: 2, modoMonitor: 'estendi', pausaABatteria: true, avvioConWindows: true },
+    corrente: voci[0].id, storicoVuoto: true, inPausa: false, pausaManuale: false, motivoPausa: null,
+    restanteMs: 18 * 60000 + 42000, totaleMs: 30 * 60000, contoAttivo: true, attendeFineVideo: false,
+    finestra, monitor, modo: 'estendi', scene: []
+  };
+  const storico = [];
+
+  function totale() { return s.impostazioni.rotazioneAttiva ? s.impostazioni.intervalloValore * (s.impostazioni.intervalloUnita === 'ore' ? 3600000 : 60000) : null; }
+  function scene() {
+    s.modo = monitor.length === 1 ? 'estendi' : s.impostazioni.modoMonitor;
+    s.scene = s.modo === 'estendi'
+      ? [{ area: { x: 0, y: 0, w: finestra.w, h: finestra.h }, monitor: monitor.map(({ x, y, w, h }) => ({ x, y, w, h })) }]
+      : monitor.map((m) => ({ area: { x: m.x, y: m.y, w: m.w, h: m.h }, monitor: [{ x: 0, y: 0, w: m.w, h: m.h }] }));
+  }
+  function invia(m) { app.contentWindow.postMessage({ allApp: m }, '*'); }
+  function inviaStato() {
+    scene();
+    s.storicoVuoto = storico.length === 0;
+    s.contoAttivo = s.totaleMs !== null && !s.pausaManuale;
+    invia(JSON.parse(JSON.stringify(s)));
+  }
+  function mostra(id, registra) {
+    if (registra !== false && s.corrente !== id) storico.push(s.corrente);
+    s.corrente = id;
+    s.totaleMs = totale();
+    s.restanteMs = s.totaleMs;
+  }
+  function prossima() {
+    const pl = s.playlist.filter((id) => voci.find((v) => v.id === id && v.disponibile));
+    const i = pl.indexOf(s.corrente);
+    if (s.impostazioni.ordine === 'casuale') {
+      const altre = pl.filter((id) => id !== s.corrente);
+      return altre[Math.floor(Math.random() * altre.length)] || pl[0];
+    }
+    return pl[(i + 1) % pl.length];
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.source !== app.contentWindow || !e.data || !e.data.dallApp) return;
+    const m = e.data.dallApp;
+    switch (m.tipo) {
+      case 'pronta': break;
+      case 'mostra': mostra(m.id); break;
+      case 'successivo': mostra(prossima()); break;
+      case 'precedente': if (storico.length) mostra(storico.pop(), false); break;
+      case 'pausa': s.pausaManuale = true; s.inPausa = true; break;
+      case 'riprendi': s.pausaManuale = false; s.inPausa = false; break;
+      case 'impostazioni': {
+        const imp = Object.assign({}, s.impostazioni, m.modifiche);
+        const max = imp.intervalloUnita === 'ore' ? 24 : 1440;
+        if (!(imp.intervalloValore >= 1 && imp.intervalloValore <= max)) { invia({ tipo: 'avviso', testo: `Scrivi un numero intero da 1 a ${max} ${imp.intervalloUnita}` }); break; }
+        const tempoCambiato = imp.intervalloValore !== s.impostazioni.intervalloValore || imp.intervalloUnita !== s.impostazioni.intervalloUnita || imp.rotazioneAttiva !== s.impostazioni.rotazioneAttiva;
+        s.impostazioni = imp;
+        if (tempoCambiato) { s.totaleMs = totale(); s.restanteMs = s.totaleMs; }
+        break;
+      }
+      case 'playlist':
+        if (!m.ids.length) invia({ tipo: 'avviso', testo: 'Lascia almeno uno sfondo nella playlist' });
+        else s.playlist = m.ids;
+        break;
+      case 'importaDialogo': invia({ tipo: 'avviso', testo: 'Nella prova nel browser la finestra di selezione non c\'è: trascina un file nella libreria' }); break;
+      case 'importaFile':
+        (m.nomiFile || []).forEach((nome, i) => voci.push({ id: 'u-prova-' + Date.now() + i, tipoVoce: /\.(mp4|webm)$/i.test(nome) ? 'video' : /\.html?$/i.test(nome) ? 'html' : 'immagine', titolo: nome.replace(/\.[^.]+$/, ''), aziendale: false, url: '/non-esiste', durataSecondi: null, disponibile: false }));
+        invia({ tipo: 'avviso', testo: (m.nomiFile || []).length + ' file simulati nella libreria' });
+        break;
+      case 'elimina': {
+        const i = voci.findIndex((v) => v.id === m.id && !v.aziendale);
+        if (i >= 0) { const [v] = voci.splice(i, 1); s.playlist = s.playlist.filter((x) => x !== m.id); invia({ tipo: 'avviso', testo: 'Eliminato dalla libreria: ' + v.titolo }); }
+        break;
+      }
+      case 'apriLog': invia({ tipo: 'avviso', testo: 'Nel programma si apre la cartella dei log' }); break;
+      case 'ripristina':
+        s.impostazioni = { intervalloValore: 30, intervalloUnita: 'minuti', rotazioneAttiva: true, fineVideo: true, ordine: 'sequenziale', dissolvenzaSecondi: 2, modoMonitor: 'estendi', pausaABatteria: true, avvioConWindows: true };
+        s.totaleMs = totale(); s.restanteMs = s.totaleMs;
+        invia({ tipo: 'avviso', testo: 'Impostazioni aziendali ripristinate' });
+        break;
+      default: break;
+    }
+    inviaStato();
+  });
+})();
+</script>
+</body>
+</html>

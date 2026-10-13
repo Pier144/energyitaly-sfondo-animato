@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Energy Italy Sfondo Animato</title>
+<link rel="stylesheet" href="font/font.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="in-attesa">
+<header class="testata">
+  <img class="logo" src="../animazioni/img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+  <nav class="schede" aria-label="Sezioni">
+    <button type="button" class="scheda" data-scheda="onda">In onda</button>
+    <button type="button" class="scheda" data-scheda="libreria">Libreria</button>
+    <button type="button" class="scheda" data-scheda="impostazioni">Impostazioni</button>
+  </nav>
+  <span class="stato-app"><span class="puntino" aria-hidden="true"></span><span id="testo-stato">AVVIO</span></span>
+</header>
+
+<main class="contenuto">
+  <section id="vista-onda" class="vista" aria-label="In onda">
+    <div class="riga-onda">
+      <div class="palco">
+        <div class="palco-testa">
+          <span class="didascalia" id="didascalia-scena"></span>
+          <div class="segmentato" id="modo-palco" role="group" aria-label="Con più monitor">
+            <button type="button" class="pillola" data-modo="estendi">Estendi</button>
+            <button type="button" class="pillola" data-modo="duplica">Duplica</button>
+          </div>
+        </div>
+        <div id="monitor-riga"></div>
+      </div>
+      <div class="pannello-onda">
+        <span class="etichetta-onda"><span class="puntino" aria-hidden="true"></span><span id="etichetta-onda-testo">IN ONDA</span></span>
+        <div>
+          <h1 id="titolo-corrente"></h1>
+          <p class="tenue" id="posizione-corrente"></p>
+        </div>
+        <div class="conto">
+          <div class="conto-riga"><span class="tempo" id="tempo">--:--</span><span class="tenue" id="nota-tempo"></span></div>
+          <div class="barra"><div id="barra-avanzamento"></div></div>
+        </div>
+        <div class="comandi">
+          <button type="button" class="tondo" id="btn-precedente" aria-label="Sfondo precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5l-9 7 9 7z"/><path d="M6 5v14"/></svg></button>
+          <button type="button" class="tondo primario" id="btn-pausa" aria-label="Pausa"></button>
+          <button type="button" class="tondo" id="btn-successivo" aria-label="Sfondo successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5l9 7-9 7z"/><path d="M18 5v14"/></svg></button>
+        </div>
+        <div class="poi" id="poi"></div>
+      </div>
+    </div>
+
+    <section class="playlist" aria-labelledby="titolo-playlist">
+      <div class="playlist-testa">
+        <div>
+          <h2 id="titolo-playlist">Playlist</h2>
+          <p class="tenue" id="nota-playlist"></p>
+        </div>
+        <div class="controlli-playlist">
+          <div class="riga-controlli">
+            <div class="gruppo-intervallo" id="gruppo-intervallo" role="group" aria-label="Cambio sfondo">
+              <label for="intervallo-valore" class="mini">CAMBIA OGNI</label>
+              <input id="intervallo-valore" type="number" min="1" step="1" inputmode="numeric" aria-describedby="intervallo-errore">
+              <label for="intervallo-unita" class="nascosto">Unità di tempo</label>
+              <select id="intervallo-unita">
+                <option value="minuti">minuti</option>
+                <option value="ore">ore</option>
+              </select>
+              <button type="button" class="pillola" id="btn-mai" aria-pressed="false" title="Cambia sfondo solo a mano">Mai</button>
+            </div>
+            <div class="segmentato" role="group" aria-label="Ordine">
+              <button type="button" class="pillola" data-ordine="sequenziale">In ordine</button>
+              <button type="button" class="pillola" data-ordine="casuale"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>Casuale</button>
+            </div>
+          </div>
+          <span id="intervallo-errore" class="errore" role="alert" hidden></span>
+          <div class="riga-interruttore">
+            <button type="button" role="switch" class="interruttore" id="sw-fine-video-playlist" aria-checked="true" aria-labelledby="etichetta-fine-video"><span></span></button>
+            <span id="etichetta-fine-video">I video cambiano a fine riproduzione</span>
+          </div>
+        </div>
+      </div>
+      <div class="striscia" id="striscia"></div>
+    </section>
+  </section>
+
+  <section id="vista-libreria" class="vista" aria-labelledby="titolo-libreria" hidden>
+    <div class="libreria-testa">
+      <div>
+        <h2 id="titolo-libreria">Libreria</h2>
+        <p class="tenue" id="nota-libreria"></p>
+      </div>
+      <div class="filtri">
+        <button type="button" class="filtro" data-filtro="tutti">Tutti <span class="conteggio"></span></button>
+        <button type="button" class="filtro" data-filtro="energy">Energy Italy <span class="conteggio"></span></button>
+        <button type="button" class="filtro" data-filtro="miei">I miei <span class="conteggio"></span></button>
+        <button type="button" class="bottone-verde" id="btn-importa"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>Importa file</button>
+      </div>
+    </div>
+    <div class="griglia" id="griglia"></div>
+  </section>
+
+  <section id="vista-impostazioni" class="vista impostazioni" aria-labelledby="titolo-impostazioni" hidden>
+    <h2 id="titolo-impostazioni">Impostazioni</h2>
+
+    <div class="gruppo-imp">
+      <h3>MONITOR</h3>
+      <div class="righe">
+        <div class="riga-imp">
+          <div class="mini-monitor" id="mini-monitor"></div>
+          <div class="testi"><strong id="titolo-monitor"></strong><span class="tenue">Il programma li trova da solo all'avvio. Se colleghi o scolleghi un monitor, o cambi risoluzione, lo sfondo si adatta senza riavviare.</span></div>
+        </div>
+        <div class="riga-imp">
+          <div class="testi"><strong>Con più monitor</strong><span class="tenue" id="descrizione-modo"></span></div>
+          <div class="segmentato" role="group" aria-label="Con più monitor">
+            <button type="button" class="pillola" data-modo="estendi">Estendi</button>
+            <button type="button" class="pillola" data-modo="duplica">Duplica</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gruppo-imp">
+      <h3>RIPRODUZIONE</h3>
+      <div class="righe">
+        <div class="riga-imp">
+          <div class="testi"><strong>Dissolvenza tra uno sfondo e l'altro</strong><span class="tenue">Provala con "Successivo" nella scheda In onda</span></div>
+          <div class="segmentato" role="group" aria-label="Durata della dissolvenza">
+            <button type="button" class="pillola" data-dissolvenza="1">1 s</button>
+            <button type="button" class="pillola" data-dissolvenza="2">2 s</button>
+            <button type="button" class="pillola" data-dissolvenza="4">4 s</button>
+          </div>
+        </div>
+        <div class="riga-imp">
+          <div class="testi"><strong>I video cambiano a fine riproduzione</strong><span class="tenue">Un video resta finché non finisce, anche se dura più dell'intervallo scelto</span></div>
+          <button type="button" role="switch" class="interruttore" id="sw-fine-video" aria-checked="true" aria-label="I video cambiano a fine riproduzione"><span></span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="gruppo-imp">
+      <h3>PAUSA AUTOMATICA</h3>
+      <div class="righe">
+        <div class="riga-imp">
+          <div class="testi"><strong>Quando il PC va a batteria</strong><span class="tenue">L'animazione si ferma per risparmiare energia</span></div>
+          <button type="button" role="switch" class="interruttore" id="sw-batteria" aria-checked="true" aria-label="Pausa quando il PC va a batteria"><span></span></button>
+        </div>
+        <div class="riga-imp">
+          <div class="testi"><strong>Giochi, video o presentazioni a schermo intero</strong><span class="tenue">Anche con sessione bloccata o monitor spenti</span></div>
+          <span class="etichetta-fissa">SEMPRE</span>
+        </div>
+        <div class="riga-imp">
+          <div class="testi"><strong>Finestre ingrandite</strong><span class="tenue">La rotazione continua: lo sfondo si ferma solo se nessun monitor mostra il desktop</span></div>
+          <span class="etichetta-fissa neutra">NON FERMANO</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="gruppo-imp">
+      <h3>SISTEMA</h3>
+      <div class="righe">
+        <div class="riga-imp">
+          <div class="testi"><strong>Avvia con Windows</strong><span class="tenue">Lo sfondo parte da solo dopo l'accesso</span></div>
+          <button type="button" role="switch" class="interruttore" id="sw-avvio" aria-checked="true" aria-label="Avvia con Windows"><span></span></button>
+        </div>
+        <div class="riga-imp">
+          <div class="testi"><strong>Log diagnostici</strong><span class="tenue">Utili all'assistenza IT in caso di problemi</span></div>
+          <button type="button" class="bottone-contorno" id="btn-log">Apri cartella</button>
+        </div>
+        <div class="riga-imp">
+          <div class="testi"><strong>Ripristina impostazioni aziendali</strong><span class="tenue">Intervallo, ordine, monitor e opzioni tornano alle scelte dell'IT. La libreria resta com'è.</span></div>
+          <button type="button" class="bottone-contorno" id="btn-ripristina">Ripristina</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="avviso" id="avviso" role="status" hidden></div>
+
+<div class="velo" id="conferma" hidden>
+  <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="conferma-titolo" aria-describedby="conferma-testo">
+    <h2 id="conferma-titolo"></h2>
+    <p class="tenue" id="conferma-testo">Il file viene cancellato dalla libreria del programma. L'originale sul tuo PC non viene toccato.</p>
+    <div class="dialogo-comandi">
+      <button type="button" class="bottone" id="conferma-no">Annulla</button>
+      <button type="button" class="bottone pericolo" id="conferma-si">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
