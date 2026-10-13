@@ -4283,7 +4283,7 @@ def main():
         pagina = cartella / 'icona.html'
         pagina.write_text(f'''<!doctype html><html><head><meta charset="utf-8"><style>
 html, body {{ margin: 0; width: {LATO}px; height: {LATO}px; background: transparent; overflow: hidden; }}
-.fondo {{ position: absolute; inset: 0; border-radius: 56px; background: #1E5B8E; }}
+.fondo {{ position: absolute; left: 0; top: 0; width: {LATO}px; height: {LATO}px; border-radius: 56px; background: #1E5B8E; }}
 .ritaglio {{ position: absolute; left: {margine}px; top: {margine}px; width: {SIMBOLO_PX}px; height: {SIMBOLO_PX}px; overflow: hidden; }}
 img {{ position: absolute; left: 0; top: 0; width: {larghezza_logo}px; height: {SIMBOLO_PX}px; }}
 </style></head><body><div class="fondo"></div><div class="ritaglio"><img src="{LOGO.as_uri()}" alt=""></div></body></html>''', encoding='utf-8')
