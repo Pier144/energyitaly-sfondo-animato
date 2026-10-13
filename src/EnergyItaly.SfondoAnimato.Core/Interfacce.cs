@@ -1,0 +1,43 @@
+namespace EnergyItaly.SfondoAnimato.Core;
+
+/// <summary>La finestra di sfondo con il player.</summary>
+public interface IVistaPlayer
+{
+    void Invia(string json);
+    void ImpostaArea(Rettangolo area);
+    void ImpostaSospensione(bool sospesa);
+}
+
+/// <summary>La finestra principale (galleria).</summary>
+public interface IVistaApp
+{
+    void Invia(string json);
+}
+
+/// <summary>File su disco: impostazioni, libreria e file importati.</summary>
+public interface IArchivio
+{
+    string? LeggiImpostazioni();
+    void ScriviImpostazioni(string json);
+    string? LeggiLibreria();
+    void ScriviLibreria(string json);
+    bool EsisteInLibreria(string nomeFile);
+    long Dimensione(string percorso);
+    void CopiaInLibreria(string percorsoOrigine, string nomeFile);
+    void CancellaDaLibreria(string nomeFile);
+}
+
+/// <summary>Servizi di Windows: avvio automatico, cartella log, icona nell'area di notifica.</summary>
+public interface ISistema
+{
+    void ImpostaAvvioConWindows(bool attivo);
+    void ApriCartellaLog();
+    void AggiornaIcona(string titolo, bool inPausa);
+}
+
+public interface ILog
+{
+    void Info(string testo);
+    void Avviso(string testo);
+    void Errore(string testo);
+}
