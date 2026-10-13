@@ -42,8 +42,15 @@
     return { larghezza, altezza, monitor, monitorLogo };
   }
 
+  // Una finestra grande zero (iframe nascosto, ad esempio una miniatura in una scheda non visibile)
+  // non ha una scena da costruire: si aspetta il primo ridimensionamento reale.
+  function haDimensioni(s) {
+    return s.larghezza > 0 && s.altezza > 0;
+  }
+
   function notifica() {
     const s = stato();
+    if (!haDimensioni(s)) return;
     ascoltatori.forEach((cb) => cb(s));
   }
 
@@ -76,7 +83,10 @@
     /** Registra la funzione che costruisce la scena: viene chiamata subito e a ogni cambio di layout. */
     avvia(costruisci) {
       ascoltatori.push(costruisci);
-      const vai = () => costruisci(stato());
+      const vai = () => {
+        const s = stato();
+        if (haDimensioni(s)) costruisci(s);
+      };
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vai);
       else vai();
     },
