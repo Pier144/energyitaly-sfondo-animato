@@ -30,6 +30,9 @@ static class Win32
     public const int WM_POWERBROADCAST = 0x218;
     public const int WM_QUERYENDSESSION = 0x11;
     public const int WM_ENDSESSION = 0x16;
+    public const int WM_SETTINGCHANGE = 0x1A;
+    public const int WM_DPICHANGED = 0x2E0;
+    public const int ASFW_ANY = -1;
     public const int PBT_POWERSETTINGCHANGE = 0x8013;
     public const uint SPI_SETDESKWALLPAPER = 0x14;
     public const uint SPI_GETDESKWALLPAPER = 0x73;
@@ -37,6 +40,7 @@ static class Win32
     public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
     public const int DWMWA_CLOAKED = 14;
     public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    public const int DWMWA_USE_IMMERSIVE_DARK_MODE_PRIMA_20H1 = 19;
     public static readonly Guid GUID_CONSOLE_DISPLAY_STATE = new("6FE69556-704A-47A0-8F24-C28D936FDA47");
     public static readonly Guid GUID_POWER_SAVING_STATUS = new("E00958C0-C213-4ACE-AC77-FECCED2EEEA5");
 
@@ -75,5 +79,6 @@ static class Win32
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attributo, out RECT valore, int dimensione);
     [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attributo, out int valore, int dimensione);
     [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hWnd, int attributo, ref int valore, int dimensione);
+    [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool AllowSetForegroundWindow(int processo);
     [DllImport("shell32.dll")] public static extern int SHQueryUserNotificationState(out int stato);
 }

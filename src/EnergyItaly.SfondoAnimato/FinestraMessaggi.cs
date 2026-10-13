@@ -4,7 +4,8 @@ namespace EnergyItaly.SfondoAnimato;
 
 /// <summary>
 /// Finestra nascosta di primo livello: riceve TaskbarCreated (Explorer riavviato, RF-04),
-/// lo stato dei monitor (RF-33) e del risparmio energia (RF-34).
+/// lo stato dei monitor (RF-33), del risparmio energia (RF-34) e i cambi di scala o di impostazioni
+/// dello schermo che WM_DISPLAYCHANGE non sempre accompagna (RF-05).
 /// </summary>
 sealed class FinestraMessaggi : NativeWindow, IDisposable
 {
@@ -14,6 +15,7 @@ sealed class FinestraMessaggi : NativeWindow, IDisposable
     public event Action? ExplorerRiavviato;
     public event Action<bool>? MonitorAccesi;
     public event Action<bool>? RisparmioEnergetico;
+    public event Action? MonitorCambiati;
 
     /// <summary>Windows o un installer (Restart Manager) chiedono di chiudere il programma.</summary>
     public event Action? ChiusuraRichiesta;
@@ -34,6 +36,10 @@ sealed class FinestraMessaggi : NativeWindow, IDisposable
         if (m.Msg == WmTaskbarCreated)
         {
             ExplorerRiavviato?.Invoke();
+        }
+        else if (m.Msg is Win32.WM_DPICHANGED or Win32.WM_SETTINGCHANGE)
+        {
+            MonitorCambiati?.Invoke();
         }
         else if (m.Msg == Win32.WM_QUERYENDSESSION)
         {

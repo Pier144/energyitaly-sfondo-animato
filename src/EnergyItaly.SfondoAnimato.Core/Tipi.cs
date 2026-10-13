@@ -16,4 +16,4 @@ public enum ModoMonitor { Estendi, Duplica }
 public enum LivelloPausa { Nessuna, Leggera, Profonda }
 
 /// <summary>Perché lo sfondo è in pausa, in ordine crescente di gravità.</summary>
-public enum MotivoPausa { Nessuno, ABatteria, Manuale, DesktopCoperto, SchermoIntero, MonitorSpenti, SessioneNonAttiva }
+public enum MotivoPausa { Nessuno, ABatteria, Manuale, DesktopCoperto, SchermoIntero, MonitorSpenti, SessioneNonAttiva, SfondoInterrotto }

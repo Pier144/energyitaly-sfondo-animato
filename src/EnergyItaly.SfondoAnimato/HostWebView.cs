@@ -18,7 +18,7 @@ sealed class HostWebView : IDisposable
         "connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'";
 
     readonly ILog log;
-    readonly HashSet<string> hostBloccati = new(StringComparer.OrdinalIgnoreCase);
+    static readonly HashSet<string> hostBloccati = new(StringComparer.OrdinalIgnoreCase);
     CoreWebView2Environment? ambiente;
 
     public HostWebView(ILog log) => this.log = log;

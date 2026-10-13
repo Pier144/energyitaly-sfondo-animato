@@ -6,7 +6,8 @@ public sealed record SegnaliSistema(
     bool SchermoIntero = false,
     bool SessioneNonAttiva = false,
     bool MonitorSpenti = false,
-    bool ABatteria = false);
+    bool ABatteria = false,
+    bool SfondoInterrotto = false);
 
 public sealed record DecisionePausa(LivelloPausa Livello, MotivoPausa Motivo)
 {
@@ -18,6 +19,7 @@ public static class RegolePausa
 {
     public static DecisionePausa Valuta(SegnaliSistema s, bool pausaABatteria, bool pausaManuale)
     {
+        if (s.SfondoInterrotto) return new(LivelloPausa.Profonda, MotivoPausa.SfondoInterrotto);
         if (s.SessioneNonAttiva) return new(LivelloPausa.Profonda, MotivoPausa.SessioneNonAttiva);
         if (s.MonitorSpenti) return new(LivelloPausa.Profonda, MotivoPausa.MonitorSpenti);
         if (s.SchermoIntero) return new(LivelloPausa.Profonda, MotivoPausa.SchermoIntero);
@@ -30,6 +32,7 @@ public static class RegolePausa
     /// <summary>Testo mostrato dopo "IN PAUSA: " nella finestra; vuoto per la pausa manuale.</summary>
     public static string Testo(MotivoPausa motivo) => motivo switch
     {
+        MotivoPausa.SfondoInterrotto => "SFONDO INTERROTTO",
         MotivoPausa.SessioneNonAttiva => "SESSIONE BLOCCATA",
         MotivoPausa.MonitorSpenti => "MONITOR SPENTI",
         MotivoPausa.SchermoIntero => "APP A SCHERMO INTERO",

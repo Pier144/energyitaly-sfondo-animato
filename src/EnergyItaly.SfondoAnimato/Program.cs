@@ -13,13 +13,16 @@ static class Program
     {
         bool avvioAutomatico = args.Contains("--avvio", StringComparer.OrdinalIgnoreCase);
         using var mutex = new Mutex(true, NomeMutex, out bool primaIstanza);
+        // L'evento esiste da subito: anche una seconda istanza lanciata durante l'avvio della prima la trova.
+        using var eventoApri = new EventWaitHandle(false, EventResetMode.AutoReset, NomeEventoApri);
         if (!primaIstanza)
         {
             // Una sola istanza (RF-42): la seconda chiede alla prima di aprire la finestra ed esce.
-            if (!avvioAutomatico && EventWaitHandle.TryOpenExisting(NomeEventoApri, out var evento))
+            // Prima le cede il diritto di andare in primo piano, che Windows dà solo al processo lanciato.
+            if (!avvioAutomatico)
             {
-                evento.Set();
-                evento.Dispose();
+                Win32.AllowSetForegroundWindow(Win32.ASFW_ANY);
+                eventoApri.Set();
             }
             return 0;
         }
@@ -41,7 +44,6 @@ static class Program
             return 1;
         }
 
-        using var eventoApri = new EventWaitHandle(false, EventResetMode.AutoReset, NomeEventoApri);
         AppSfondo app;
         try
         {

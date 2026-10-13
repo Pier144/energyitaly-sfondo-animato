@@ -65,9 +65,11 @@ sealed class GestorePausa : IDisposable
         Cambiati?.Invoke(segnali);
     }
 
-    // QUNS_BUSY (2), QUNS_RUNNING_D3D_FULL_SCREEN (3), QUNS_PRESENTATION_MODE (4): RF-31.
+    // QUNS_RUNNING_D3D_FULL_SCREEN (3) e QUNS_PRESENTATION_MODE (4): RF-31. QUNS_BUSY (2) no: vale
+    // per qualunque finestra a schermo intero anche su un solo monitor, e quel caso lo decide la
+    // copertura per monitor (RF-30), così l'animazione continua sugli altri (T7).
     static bool SchermoInteroAttivo() =>
-        Win32.SHQueryUserNotificationState(out var stato) == 0 && stato is 2 or 3 or 4;
+        Win32.SHQueryUserNotificationState(out var stato) == 0 && stato is 3 or 4;
 
     public void Dispose()
     {

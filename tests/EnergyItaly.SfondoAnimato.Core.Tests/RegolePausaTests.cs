@@ -24,6 +24,14 @@ public class RegolePausaTests
     }
 
     [Fact]
+    public void SfondoInterrotto_ProfondaEVinceSuTutto()
+    {
+        var tutti = new SegnaliSistema(true, true, true, true, true, SfondoInterrotto: true);
+
+        Assert.Equal(new DecisionePausa(LivelloPausa.Profonda, MotivoPausa.SfondoInterrotto), RegolePausa.Valuta(tutti, true, true));
+    }
+
+    [Fact]
     public void ABatteria_LeggeraSoloSeAttivaNelleImpostazioni()
     {
         var s = new SegnaliSistema(ABatteria: true);
@@ -48,6 +56,7 @@ public class RegolePausaTests
     }
 
     [Theory]
+    [InlineData(MotivoPausa.SfondoInterrotto, "SFONDO INTERROTTO")]
     [InlineData(MotivoPausa.SessioneNonAttiva, "SESSIONE BLOCCATA")]
     [InlineData(MotivoPausa.MonitorSpenti, "MONITOR SPENTI")]
     [InlineData(MotivoPausa.SchermoIntero, "APP A SCHERMO INTERO")]

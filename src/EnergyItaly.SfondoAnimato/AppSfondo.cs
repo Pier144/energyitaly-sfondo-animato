@@ -31,6 +31,8 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
     FinestraPrincipale? principale;
     Rettangolo area = new(0, 0, 1920, 1080);
     bool sospeso;
+    bool sfondoInterrotto;
+    SegnaliSistema segnali = new();
     int tentativiAggancio;
     bool uscita;
 
@@ -72,9 +74,14 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
             Esci();
         };
         pausa = new GestorePausa(messaggi);
-        pausa.Cambiati += segnali => coord.AggiornaSegnali(segnali);
+        pausa.Cambiati += nuovi =>
+        {
+            segnali = nuovi;
+            InviaSegnali();
+        };
 
         SystemEvents.DisplaySettingsChanged += MonitorCambiati;
+        messaggi.MonitorCambiati += () => MonitorCambiati(null, EventArgs.Empty);
         ritardoMonitor.Tick += (_, _) =>
         {
             ritardoMonitor.Stop();
@@ -100,7 +107,7 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
 
     async Task CreaSfondoAsync()
     {
-        if (uscita) return;
+        if (uscita || sfondoInterrotto) return;
         DistruggiSfondo(ridisegna: false);
         coord.PlayerRicreato();
         var finestra = new FinestraSfondo(log, desktop);
@@ -137,16 +144,24 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
             while (crash.Count > 0 && adesso - crash.Peek() > IntervalloCrash) crash.Dequeue();
             if (crash.Count >= 3)
             {
-                log.Errore("Lo sfondo si è interrotto 3 volte in 5 minuti: resta spento fino al prossimo avvio");
+                // Spec 9: pausa profonda, così la finestra mostra il motivo e la rotazione non manda
+                // sfondi a un player che non c'è. Resta così fino al prossimo avvio del programma.
+                log.Errore("Lo sfondo si è interrotto 3 volte in 5 minuti: pausa profonda fino al prossimo avvio");
+                sfondoInterrotto = true;
+                ricreazione.Stop();
                 DistruggiSfondo(ridisegna: true);
+                InviaSegnali();
                 return;
             }
         }
         ProgrammaRicreazione(2000);
     }
 
+    void InviaSegnali() => coord.AggiornaSegnali(segnali with { SfondoInterrotto = sfondoInterrotto });
+
     void ProgrammaRicreazione(int millisecondi)
     {
+        if (sfondoInterrotto) return;
         ricreazione.Stop();
         ricreazione.Interval = millisecondi;
         ricreazione.Start();

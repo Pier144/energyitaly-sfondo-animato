@@ -8,6 +8,7 @@ namespace EnergyItaly.SfondoAnimato;
 sealed class FinestraPrincipale : Form
 {
     static readonly Color Fondo = Color.FromArgb(0x07, 0x11, 0x1f);
+    static readonly TimeSpan IntervalloCrash = TimeSpan.FromMinutes(5);
 
     readonly ILog log;
     HostWebView web;
@@ -15,6 +16,7 @@ sealed class FinestraPrincipale : Form
     readonly Action<IReadOnlyList<string>> importa;
     bool inizializzata;
     bool chiusuraDefinitiva;
+    readonly Queue<DateTime> crash = new();
 
     public FinestraPrincipale(ILog log, Icon icona, Action<string> daApp, Action<IReadOnlyList<string>> importa)
     {
@@ -32,7 +34,8 @@ sealed class FinestraPrincipale : Form
     {
         base.OnHandleCreated(e);
         int scuro = 1;
-        Win32.DwmSetWindowAttribute(Handle, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref scuro, sizeof(int));
+        if (Win32.DwmSetWindowAttribute(Handle, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref scuro, sizeof(int)) != 0)
+            Win32.DwmSetWindowAttribute(Handle, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE_PRIMA_20H1, ref scuro, sizeof(int));
         float k = DeviceDpi / 96f;
         var lavoro = Screen.FromHandle(Handle).WorkingArea;
         MinimumSize = new Size(Math.Min((int)(960 * k), lavoro.Width), Math.Min((int)(640 * k), lavoro.Height));
@@ -52,6 +55,17 @@ sealed class FinestraPrincipale : Form
     void RicreaWebView()
     {
         if (chiusuraDefinitiva || IsDisposed) return;
+        var adesso = DateTime.UtcNow;
+        crash.Enqueue(adesso);
+        while (crash.Count > 0 && adesso - crash.Peek() > IntervalloCrash) crash.Dequeue();
+        if (crash.Count >= 3)
+        {
+            // Come per lo sfondo (spec 9): niente ricreazioni a ciclo continuo. La finestra si chiude
+            // e la prossima apertura dal menu ne crea una nuova.
+            log.Errore("Finestra principale: la WebView si è interrotta 3 volte in 5 minuti, la chiudo");
+            ChiudiDefinitivamente();
+            return;
+        }
         log.Avviso("Finestra principale: ricreo la WebView dopo un errore del processo");
         web.Dispose();
         web = CreaWebView();
