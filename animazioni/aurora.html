@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora</title>
+<link rel="stylesheet" href="comune/base.css">
+<style>
+.nastro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  animation: scorri var(--durata) linear infinite;
+  will-change: transform;
+}
+@keyframes scorri {
+  0% { transform: translateX(var(--periodo-negativo)); }
+  100% { transform: translateX(0); }
+}
+.macchia { position: absolute; }
+.macchia-dentro { width: 100%; height: 100%; animation: respira 18s ease-in-out infinite alternate; }
+@keyframes respira {
+  0% { transform: scale(0.88) translateY(30px); }
+  100% { transform: scale(1.12) translateY(-30px); }
+}
+.velo {
+  position: absolute;
+  transform: skewX(-14deg);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 50%, transparent 90%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 50%, transparent 90%);
+  animation: tremola 8s ease-in-out infinite alternate;
+}
+@keyframes tremola {
+  0% { opacity: 0.45; transform: skewX(-14deg) translateY(0); }
+  100% { opacity: 1; transform: skewX(-10deg) translateY(-24px); }
+}
+</style>
+</head>
+<body>
+<div id="scena"></div>
+<img id="logo" src="img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+<script src="comune/sfondo.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Parametri: ?velocita=1&veli=1 (veli=0 per toglierli)
+  const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+  const conVeli = Sfondo.parametro('veli', 1) !== 0;
+
+  const basiMacchie = [
+    { x: 520, y: 220, w: 1700, h: 900, c: 'rgba(122,181,42,0.36)', r: 16 },
+    { x: 1450, y: 820, w: 1900, h: 900, c: 'rgba(30,91,142,0.8)', r: 21 },
+    { x: 2450, y: 300, w: 1800, h: 1000, c: 'rgba(122,181,42,0.3)', r: 18 },
+    { x: 3300, y: 760, w: 1600, h: 850, c: 'rgba(74,144,200,0.38)', r: 14 }
+  ];
+  const basiVeli = [
+    { x: 300, w: 620, top: -20, a: 0.22, r: 7 },
+    { x: 950, w: 820, top: 40, a: 0.3, r: 9 },
+    { x: 1750, w: 560, top: 0, a: 0.2, r: 6 },
+    { x: 2350, w: 900, top: 20, a: 0.34, r: 10 },
+    { x: 3050, w: 640, top: -10, a: 0.26, r: 8 },
+    { x: 3550, w: 500, top: 30, a: 0.2, r: 7 }
+  ];
+
+  Sfondo.avvia((s) => {
+    const W = s.larghezza;
+    const H = s.altezza;
+    const k = H / 1080;
+    const sx = W / 3840;
+    const m = s.monitorLogo;
+    const P = W;
+    // Ogni elemento è ripetuto a distanza di un periodo, così il nastro scorre senza stacchi.
+    const copie = [-P, 0, P, 2 * P];
+
+    let macchie = '';
+    let veli = '';
+    for (const scarto of copie) {
+      basiMacchie.forEach((b) => {
+        const w = b.w * k;
+        const h = b.h * k;
+        macchie += '<div class="macchia" style="left:' + (b.x * sx + scarto - w / 2).toFixed(0) + 'px;top:' + (b.y * k - h / 2).toFixed(0) +
+          'px;width:' + w.toFixed(0) + 'px;height:' + h.toFixed(0) + 'px">' +
+          '<div class="macchia-dentro" style="animation-duration:' + b.r + 's;background:radial-gradient(closest-side,' + b.c + ' 0%,rgba(7,17,31,0) 100%)"></div></div>';
+      });
+      if (conVeli) {
+        basiVeli.forEach((b, i) => {
+          const w = b.w * k;
+          const forte = Math.min(1, b.a * 1.3).toFixed(2);
+          veli += '<div class="velo" style="left:' + (b.x * sx + scarto - w / 2).toFixed(0) + 'px;top:' + (b.top * k).toFixed(0) +
+            'px;width:' + w.toFixed(0) + 'px;height:' + (900 * k).toFixed(0) + 'px;animation-duration:' + b.r + 's;animation-delay:' + (-i * 1.7).toFixed(1) + 's;background:' +
+            'repeating-linear-gradient(90deg,rgba(255,255,255,0.06) 0 2px,rgba(255,255,255,0) 2px 22px),' +
+            'linear-gradient(90deg,rgba(122,181,42,0) 0%,rgba(122,181,42,' + b.a + ') 35%,rgba(170,225,110,' + forte + ') 50%,rgba(122,181,42,' + b.a + ') 65%,rgba(122,181,42,0) 100%)"></div>';
+        });
+      }
+    }
+    const nastro = (durataNastro, contenuto) =>
+      '<div class="nastro" style="width:' + (2 * P) + 'px;height:' + H + 'px;--durata:' + Math.round(durataNastro / velocita) +
+      's;--periodo-negativo:' + (-P) + 'px">' + contenuto + '</div>';
+
+    let html = '';
+    html += '<div class="strato" style="background:linear-gradient(0deg,rgba(122,181,42,0.1) 0%,rgba(122,181,42,0) 18%),linear-gradient(180deg,#07111f 0%,#0b1a30 60%,#10243f 100%)"></div>';
+    html += nastro(140, macchie);
+    html += nastro(90, veli);
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1200 * k) + 'px ' + (650 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
+      'px,rgba(7,17,31,0.9) 0%,rgba(7,17,31,0) 70%)"></div>';
+
+    document.getElementById('scena').innerHTML = html;
+    Sfondo.posizionaLogo(document.getElementById('logo'), s);
+  });
+})();
+</script>
+</body>
+</html>

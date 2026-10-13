@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+*.user
+publish/
+installer/Output/
+src/EnergyItaly.SfondoAnimato/web/animazioni/
+TestResults/

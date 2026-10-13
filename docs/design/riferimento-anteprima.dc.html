@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Anteprima sfondo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: absolute; inset: 0; overflow: hidden; background: #0f1e35">
+
+<sc-if value="{{onda}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; background: #0f1e35"></div>
+<div style="position: absolute; top: -20%; bottom: -20%; left: 0; width: 60%; background: linear-gradient(90deg, rgba(122,181,42,0) 0%, rgba(122,181,42,0.12) 45%, rgba(122,181,42,0.55) 86%, rgba(178,224,104,0.85) 95%, rgba(122,181,42,0) 100%); transform: skewX(-12deg); animation: ei-onda 7s linear infinite"></div>
+<div style="position: absolute; inset: 0; background-image: linear-gradient(#0f1e35 3px, transparent 3px), linear-gradient(90deg, #0f1e35 3px, transparent 3px); background-size: 16px 16px"></div>
+<div style="position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px); background-size: 16px 16px; background-position: 3px 3px"></div>
+</sc-if>
+
+<sc-if value="{{onde}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, #173a63 0%, #0f1e35 70%)"></div>
+<div style="position: absolute; top: 0; left: 0; width: 200%; height: 100%; animation: ei-scorri 16s linear infinite">
+<svg viewBox="0 0 640 180" preserveAspectRatio="none" aria-hidden="true" style="display: block; width: 100%; height: 100%">
+<g fill="none" stroke-width="1.6" opacity="0.8">
+<path stroke="#2a6fa8" d="M0 60 C53 30 107 30 160 60 S267 90 320 60 S427 30 480 60 S587 90 640 60"></path>
+<path stroke="#2f7aa6" d="M0 68 C53 28 107 28 160 68 S267 108 320 68 S427 28 480 68 S587 108 640 68"></path>
+<path stroke="#3a86a0" d="M0 76 C53 26 107 26 160 76 S267 126 320 76 S427 26 480 76 S587 126 640 76"></path>
+<path stroke="#4a9290" d="M0 84 C53 24 107 24 160 84 S267 144 320 84 S427 24 480 84 S587 144 640 84"></path>
+<path stroke="#5a9e78" d="M0 92 C53 22 107 22 160 92 S267 162 320 92 S427 22 480 92 S587 162 640 92"></path>
+<path stroke="#68a95c" d="M0 100 C53 40 107 40 160 100 S267 160 320 100 S427 40 480 100 S587 160 640 100"></path>
+<path stroke="#7AB52A" d="M0 108 C53 58 107 58 160 108 S267 158 320 108 S427 58 480 108 S587 158 640 108"></path>
+<path stroke="#9cc95a" d="M0 116 C53 76 107 76 160 116 S267 156 320 116 S427 76 480 116 S587 156 640 116"></path>
+</g>
+</svg>
+</div>
+</sc-if>
+
+<sc-if value="{{paesaggio}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #0f1e35 0%, #16365a 55%, #24598a 100%)"></div>
+<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMax slice" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%">
+<path fill="#1c4f7c" d="M0 120 C60 95 110 100 170 112 S270 95 320 105 L320 180 L0 180 Z"></path>
+<g stroke="#dfe8f0" stroke-width="1.4" stroke-linecap="round" fill="none">
+<line x1="200" y1="104" x2="200" y2="60"></line>
+<line x1="246" y1="100" x2="246" y2="68"></line>
+<line x1="152" y1="111" x2="152" y2="80"></line>
+</g>
+<g stroke="#dfe8f0" stroke-width="1.6" stroke-linecap="round" style="transform-origin: 200px 60px; transform-box: view-box; animation: ei-gira 7s linear infinite">
+<line x1="200" y1="60" x2="200" y2="42"></line>
+<line x1="200" y1="60" x2="184.4" y2="69"></line>
+<line x1="200" y1="60" x2="215.6" y2="69"></line>
+</g>
+<g stroke="#dfe8f0" stroke-width="1.3" stroke-linecap="round" style="transform-origin: 246px 68px; transform-box: view-box; animation: ei-gira 9s linear infinite">
+<line x1="246" y1="68" x2="246" y2="55"></line>
+<line x1="246" y1="68" x2="234.7" y2="74.5"></line>
+<line x1="246" y1="68" x2="257.3" y2="74.5"></line>
+</g>
+<g stroke="#dfe8f0" stroke-width="1.3" stroke-linecap="round" style="transform-origin: 152px 80px; transform-box: view-box; animation: ei-gira 8s linear infinite">
+<line x1="152" y1="80" x2="152" y2="66"></line>
+<line x1="152" y1="80" x2="139.9" y2="87"></line>
+<line x1="152" y1="80" x2="164.1" y2="87"></line>
+</g>
+<path fill="#2f6b34" d="M0 140 C70 118 130 122 190 135 S280 120 320 130 L320 180 L0 180 Z"></path>
+<g fill="#1E5B8E" stroke="#9cc95a" stroke-width="0.6">
+<polygon points="34,140 58,140 54,132 30,132"></polygon>
+<polygon points="64,138 88,138 84,130 60,130"></polygon>
+<polygon points="94,137 118,137 114,129 90,129"></polygon>
+</g>
+<path fill="#5b9a26" d="M0 162 C80 147 160 152 230 160 S300 152 320 157 L320 180 L0 180 Z"></path>
+</svg>
+</sc-if>
+
+<sc-if value="{{circuito}}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%">
+<g fill="none" stroke="#1E5B8E" stroke-width="1.5" stroke-linejoin="round">
+<polyline points="0,30 70,30 90,50 180,50 200,30 320,30"></polyline>
+<polyline points="0,72 40,72 60,92 140,92 160,72 250,72 270,92 320,92"></polyline>
+<polyline points="0,122 110,122 130,142 220,142 240,122 320,122"></polyline>
+<polyline points="0,162 60,162 80,150 170,150 190,162 320,162"></polyline>
+<polyline points="110,0 110,22 120,32"></polyline>
+<polyline points="250,180 250,150 236,136"></polyline>
+</g>
+<g fill="#0f1e35" stroke="#2a6fa8" stroke-width="1.2">
+<circle cx="120" cy="32" r="3"></circle>
+<circle cx="236" cy="136" r="3"></circle>
+<circle cx="180" cy="50" r="2.5"></circle>
+<circle cx="60" cy="92" r="2.5"></circle>
+<circle cx="220" cy="142" r="2.5"></circle>
+</g>
+<g fill="none" stroke="#b2e068" stroke-width="2.2" stroke-linecap="round">
+<polyline points="0,30 70,30 90,50 180,50 200,30 320,30" style="stroke-dasharray: 16 400; animation: ei-impulso 5s linear infinite"></polyline>
+<polyline points="0,72 40,72 60,92 140,92 160,72 250,72 270,92 320,92" style="stroke-dasharray: 16 400; animation: ei-impulso 6s linear infinite; animation-delay: -2s"></polyline>
+<polyline points="0,122 110,122 130,142 220,142 240,122 320,122" style="stroke-dasharray: 16 400; animation: ei-impulso 4.5s linear infinite; animation-delay: -3s"></polyline>
+<polyline points="0,162 60,162 80,150 170,150 190,162 320,162" style="stroke-dasharray: 16 400; animation: ei-impulso 7s linear infinite; animation-delay: -1s"></polyline>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{aurora}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: -10%; background: radial-gradient(ellipse 45% 55% at 28% 38%, rgba(122,181,42,0.42), transparent 70%), radial-gradient(ellipse 45% 55% at 70% 55%, rgba(42,111,168,0.6), transparent 70%), radial-gradient(ellipse 40% 45% at 50% 95%, rgba(30,91,142,0.55), transparent 70%); animation: ei-respira 9s ease-in-out infinite alternate"></div>
+<div style="position: absolute; top: 8%; left: 34%; width: 10%; height: 72%; background: linear-gradient(180deg, transparent, rgba(178,224,104,0.38), transparent); transform: skewX(-14deg); animation: ei-tremola 5s ease-in-out infinite alternate"></div>
+<div style="position: absolute; top: 14%; left: 52%; width: 7%; height: 62%; background: linear-gradient(180deg, transparent, rgba(122,181,42,0.3), transparent); transform: skewX(-14deg); animation: ei-tremola 6s ease-in-out infinite alternate; animation-delay: -2s"></div>
+<div style="position: absolute; top: 4%; left: 66%; width: 12%; height: 66%; background: linear-gradient(180deg, transparent, rgba(90,160,210,0.3), transparent); transform: skewX(-14deg); animation: ei-tremola 7s ease-in-out infinite alternate; animation-delay: -4s"></div>
+</sc-if>
+
+<sc-if value="{{immagine}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #34506f, #1d2f47)">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c6d4e3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 17l-5-5-9 8"></path></svg>
+</div>
+</sc-if>
+
+<sc-if value="{{video}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #3b3f6b, #1d2440)">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d2d4ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M10 9.5v5l4.5-2.5z"></path></svg>
+</div>
+</sc-if>
+
+<sc-if value="{{html}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #21494f, #14303a)">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c4e2df" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 8l-4 4 4 4"></path><path d="M16 8l4 4-4 4"></path><path d="M13.5 5l-3 14"></path></svg>
+</div>
+</sc-if>
+
+<sc-if value="{{mostraLogo}}" hint-placeholder-val="{{ true }}">
+<img src="/_blob/38083dcb816ac5acf6d5cf54e2313d24" alt="" style="position: absolute; left: 3.3%; bottom: 10%; width: {{logoW}}; height: auto; pointer-events: none">
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tipo":{"editor":"enum","options":["onda-di-luce","onde-di-energia","paesaggio-rinnovabile","circuito","aurora","immagine","video","html"],"default":"onda-di-luce"},"logo":{"editor":"boolean","default":true},"logoLarghezza":{"editor":"text","default":"22%"},"$preview":{"width":320,"height":180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = this.props.tipo ?? 'onda-di-luce';
+    const aziendali = ['onda-di-luce', 'onde-di-energia', 'paesaggio-rinnovabile', 'circuito', 'aurora'];
+    return {
+      onda: t === 'onda-di-luce',
+      onde: t === 'onde-di-energia',
+      paesaggio: t === 'paesaggio-rinnovabile',
+      circuito: t === 'circuito',
+      aurora: t === 'aurora',
+      immagine: t === 'immagine',
+      video: t === 'video',
+      html: t === 'html',
+      mostraLogo: aziendali.includes(t) && (this.props.logo ?? true),
+      logoW: this.props.logoLarghezza ?? '22%'
+    };
+  }
+}
+</script>
+</body>
+</html>

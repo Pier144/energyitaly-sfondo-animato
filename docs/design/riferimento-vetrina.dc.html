@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>In onda</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#07111f}
+a{color:#b2e068}a:hover{color:#d3f0a5}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,label:focus-within{outline:2px solid #b2e068;outline-offset:2px}
+input[type=number]::-webkit-inner-spin-button{opacity:1}
+.ei-pausa *{animation-play-state:paused!important}
+@keyframes ei-onda{from{transform:translateX(-80%) skewX(-12deg)}to{transform:translateX(200%) skewX(-12deg)}}
+@keyframes ei-scorri{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@keyframes ei-gira{to{transform:rotate(360deg)}}
+@keyframes ei-impulso{from{stroke-dashoffset:416}to{stroke-dashoffset:0}}
+@keyframes ei-respira{from{transform:scale(0.92) translateY(4%)}to{transform:scale(1.1) translateY(-4%)}}
+@keyframes ei-tremola{from{opacity:0.4;transform:skewX(-14deg) translateY(0)}to{opacity:1;transform:skewX(-10deg) translateY(-6%)}}
+@keyframes ei-battito{0%,100%{opacity:1}50%{opacity:0.35}}
+@keyframes ei-avviso{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; background: #07111f; color: #e8eef6; font-family: 'Sora', 'Segoe UI', sans-serif; font-size: 14px; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; padding: 0 0 0 28px; min-height: 64px; border-bottom: 1px solid #142640">
+<img src="/_blob/38083dcb816ac5acf6d5cf54e2313d24" alt="Energy Italy" style="width: 128px; height: auto">
+<nav aria-label="Sezioni" style="display: flex; gap: 4px; flex-wrap: wrap">
+<sc-for list="{{schede}}" as="t" hint-placeholder-count="3">
+<button type="button" onClick="{{t.apri}}" aria-current="{{t.ariaCorrente}}" style="{{t.stile}}">{{t.etichetta}}</button>
+</sc-for>
+</nav>
+<div style="margin-left: auto; display: flex; align-items: center; align-self: stretch">
+<span style="display: flex; align-items: center; gap: 8px; padding-right: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #a9bbcf"><span style="{{statoPuntino}}"></span>{{statoTesto}}</span>
+<button type="button" aria-label="Riduci a icona" style="width: 46px; align-self: stretch; border: 0; background: transparent; color: #a9bbcf; cursor: pointer"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M1 6h10"></path></svg></button>
+<button type="button" aria-label="Ingrandisci" style="width: 46px; align-self: stretch; border: 0; background: transparent; color: #a9bbcf; cursor: pointer"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9"></rect></svg></button>
+<button type="button" aria-label="Chiudi nella barra di notifica" onClick="{{chiudi}}" style="width: 46px; align-self: stretch; border: 0; background: transparent; color: #a9bbcf; cursor: pointer"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9"></path></svg></button>
+</div>
+</header>
+
+<main style="display: flex; flex-direction: column; gap: 40px; padding: 32px 28px 48px; width: 100%; max-width: 1440px; box-sizing: border-box; margin: 0 auto">
+
+<sc-if value="{{suOnda}}" hint-placeholder-val="{{ true }}">
+<section aria-label="In onda" style="display: flex; flex-wrap: wrap; gap: 32px; align-items: stretch">
+<div class="{{classeScena}}" style="flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 18px; padding: 24px 28px 28px; border-radius: 20px; background: radial-gradient(ellipse at 50% 0%, #11284a 0%, #0a1a30 70%); border: 1px solid #16304f; box-sizing: border-box">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #a9bbcf">{{scenaDidascalia}}</span>
+<sc-if value="{{piuMonitor}}" hint-placeholder-val="{{ true }}">
+<div role="group" aria-label="Con più monitor" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #07111f; border: 1px solid #16304f">
+<sc-for list="{{modiMonitor}}" as="c" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{c.premuto}}" onClick="{{c.scegli}}" style="{{c.stile}}">{{c.etichetta}}</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<div style="display: flex; gap: 14px; align-items: flex-start">
+<sc-for list="{{monitor}}" as="m" hint-placeholder-count="2">
+<div style="{{m.colonnaStile}}">
+<div style="width: 100%; padding: 6px; border-radius: 8px; background: #02070f; box-sizing: border-box">
+<div style="position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 3px; background: #0f1e35">
+<div style="{{m.strato0}}"><div style="{{m.interno}}"><dc-import name="Anteprima" tipo="{{m.tipo0}}" logo-larghezza="{{m.logoW}}" hint-size="100%,100%"></dc-import></div></div>
+<div style="{{m.strato1}}"><div style="{{m.interno}}"><dc-import name="Anteprima" tipo="{{m.tipo1}}" logo-larghezza="{{m.logoW}}" hint-size="100%,100%"></dc-import></div></div>
+</div>
+</div>
+<div style="{{m.colloStile}}"></div>
+<div style="width: 34%; height: 5px; border-radius: 3px; background: #13243c"></div>
+<span style="margin-top: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #a9bbcf; text-align: center">{{m.etichetta}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 22px; padding: 8px 4px">
+<span style="{{etichettaOndaStile}}"><span style="{{statoPuntino}}"></span>{{etichettaOnda}}</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 44px; line-height: 1.05; font-weight: 800; letter-spacing: -0.02em">{{corrente.titolo}}</h1>
+<p style="margin: 0; color: #a9bbcf">{{posizioneTesto}}</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 40px; font-weight: 500; letter-spacing: -0.02em">{{tempo}}</span>
+<span style="color: #a9bbcf">{{tempoNota}}</span>
+</div>
+<div style="height: 4px; border-radius: 2px; background: #1a2f4d; overflow: hidden"><div style="width: {{progresso}}%; height: 100%; background: #7AB52A; transition: width 0.9s linear"></div></div>
+</div>
+<div style="display: flex; align-items: center; gap: 12px">
+<button type="button" aria-label="Sfondo precedente" onClick="{{precedente}}" style="width: 52px; height: 52px; border-radius: 26px; border: 1px solid #22395a; background: transparent; color: #e8eef6; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5l-9 7 9 7z"></path><path d="M6 5v14"></path></svg></button>
+<button type="button" aria-label="{{etichettaPausa}}" onClick="{{alternaPausa}}" style="width: 68px; height: 68px; border-radius: 34px; border: 0; background: #7AB52A; color: #07111f; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<sc-if value="{{inRiproduzione}}" hint-placeholder-val="{{ true }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M9 5v14M15 5v14"></path></svg></sc-if>
+<sc-if value="{{inPausa}}" hint-placeholder-val="{{ false }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5l12 7-12 7z"></path></svg></sc-if>
+</button>
+<button type="button" aria-label="Sfondo successivo" onClick="{{successivo}}" style="width: 52px; height: 52px; border-radius: 26px; border: 1px solid #22395a; background: transparent; color: #e8eef6; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5l9 7-9 7z"></path><path d="M18 5v14"></path></svg></button>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; min-height: 74px; padding: 10px; border-radius: 12px; background: #0c1b31; border: 1px solid #16304f; box-sizing: border-box">
+<sc-if value="{{poiSequenziale}}" hint-placeholder-val="{{ true }}">
+<div style="position: relative; width: 96px; flex: none; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden">
+<dc-import name="Anteprima" tipo="{{poi.tipo}}" logo="{{ false }}" hint-size="100%,100%"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{poiCasuale}}" hint-placeholder-val="{{ false }}">
+<div style="width: 96px; flex: none; aspect-ratio: 16 / 9; border-radius: 6px; background: #13243c; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b2e068" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg></div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #a9bbcf">POI</span>
+<span style="font-weight: 700">{{poiTesto}}</span>
+</div>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="titolo-playlist" style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="titolo-playlist" style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.01em">Playlist</h2>
+<p style="margin: 0; color: #a9bbcf">Trascina per cambiare l'ordine, clicca un'anteprima per mostrarla subito. Dissolvenza di {{dissolvenza}} s.</p>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: flex-end">
+<div role="group" aria-label="Cambio sfondo" style="display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border-radius: 12px; background: #0c1b31; border: 1px solid {{bordoIntervallo}}">
+<label for="intervallo-valore" style="padding-right: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #a9bbcf">CAMBIA OGNI</label>
+<input id="intervallo-valore" type="number" min="1" max="{{maxValore}}" step="1" value="{{intervalloTesto}}" onChange="{{cambiaValore}}" onBlur="{{confermaValore}}" disabled="{{rotazioneSpenta}}" aria-describedby="intervallo-errore" style="{{campoStile}}">
+<label for="intervallo-unita" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap">Unità di tempo</label>
+<select id="intervallo-unita" value="{{unita}}" onChange="{{cambiaUnita}}" disabled="{{rotazioneSpenta}}" style="{{selectStile}}">
+<option value="minuti">minuti</option>
+<option value="ore">ore</option>
+</select>
+<button type="button" aria-pressed="{{rotazioneSpenta}}" onClick="{{alternaMai}}" title="Cambia sfondo solo a mano" style="{{maiStile}}">Mai</button>
+</div>
+<div role="group" aria-label="Ordine" style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; background: #0c1b31; border: 1px solid #16304f">
+<sc-for list="{{ordini}}" as="c" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{c.premuto}}" onClick="{{c.scegli}}" style="{{c.stile}}">{{c.etichetta}}</button>
+</sc-for>
+</div>
+</div>
+<sc-if value="{{erroreVisibile}}" hint-placeholder-val="{{ false }}">
+<span id="intervallo-errore" role="alert" style="font-size: 13px; color: #ffb4a8">{{errore}}</span>
+</sc-if>
+<div style="display: flex; align-items: center; gap: 10px">
+<button type="button" role="switch" aria-checked="{{fineVideo}}" aria-labelledby="etichetta-fine-video" onClick="{{alternaFineVideo}}" style="{{fineVideoTraccia}}"><span style="{{fineVideoPomello}}"></span></button>
+<span id="etichetta-fine-video" style="color: #c6d4e3">I video cambiano a fine riproduzione</span>
+</div>
+</div>
+</div>
+
+<div style="display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px">
+<sc-for list="{{playlist}}" as="item" hint-placeholder-count="6">
+<div draggable="true" onDragStart="{{item.inizioTrascina}}" onDragOver="{{item.sopra}}" onDrop="{{item.rilascia}}" onDragEnd="{{item.fineTrascina}}" style="{{item.boxStyle}}">
+<div style="display: flex; align-items: center; justify-content: space-between; min-height: 32px">
+<span style="display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #a9bbcf">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="#5d7593" aria-hidden="true"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>{{item.num}}</span>
+<sc-if value="{{item.attivo}}" hint-placeholder-val="{{ false }}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #b2e068">IN ONDA</span>
+</sc-if>
+<sc-if value="{{item.inattivo}}" hint-placeholder-val="{{ true }}">
+<button type="button" aria-label="{{item.etichettaTogli}}" title="Togli dalla playlist" onClick="{{item.togli}}" style="width: 32px; height: 32px; border: 0; border-radius: 16px; background: transparent; color: #8fa3ba; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</sc-if>
+</div>
+<button type="button" aria-label="{{item.etichettaMostra}}" onClick="{{item.mostra}}" style="position: relative; display: block; width: 100%; padding: 0; border: 0; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; cursor: pointer; background: #0f1e35">
+<dc-import name="Anteprima" tipo="{{item.tipo}}" hint-size="100%,100%"></dc-import>
+</button>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 700">{{item.titolo}}</span>
+<span style="font-size: 12px; color: #a9bbcf">{{item.metaCompleta}}</span>
+</div>
+<sc-if value="{{item.attivo}}" hint-placeholder-val="{{ false }}">
+<div style="height: 3px; border-radius: 2px; background: #1a2f4d; overflow: hidden"><div style="width: {{item.progresso}}%; height: 100%; background: #7AB52A; transition: width 0.9s linear"></div></div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{playlistVuota}}" hint-placeholder-val="{{ false }}">
+<div style="flex: none; display: flex; align-items: center; padding: 0 20px; min-height: 200px; color: #a9bbcf">La playlist è vuota: aggiungi almeno uno sfondo dalla libreria.</div>
+</sc-if>
+<button type="button" onClick="{{apriLibreria}}" style="flex: none; width: 200px; min-height: 200px; border: 1.5px dashed #2a4568; border-radius: 14px; background: transparent; color: #a9bbcf; font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b2e068" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+<span style="font-weight: 700; color: #e8eef6">Aggiungi alla playlist</span>
+</button>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{suLibreria}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="titolo-libreria" style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="titolo-libreria" style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em">Libreria</h2>
+<p style="margin: 0; color: #a9bbcf">{{nLibreria}} sfondi, {{nPlaylist}} nella playlist. Clicca un'anteprima per mostrarla subito.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<sc-for list="{{filtri}}" as="f" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{f.premuto}}" onClick="{{f.scegli}}" style="{{f.stile}}">{{f.etichetta}}</button>
+</sc-for>
+<label style="position: relative; min-height: 44px; padding: 0 18px; border-radius: 22px; background: #7AB52A; color: #07111f; font-weight: 800; display: flex; align-items: center; gap: 8px; cursor: pointer; margin-left: 8px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"></path><path d="M7 8l5-5 5 5"></path><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg>
+Importa file
+<input type="file" multiple accept="image/*,video/*,.html,.htm" onChange="{{sceltaFile}}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); opacity: 0">
+</label>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px">
+<sc-for list="{{libreria}}" as="item" hint-placeholder-count="8">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button type="button" aria-label="{{item.etichettaMostra}}" onClick="{{item.mostra}}" style="{{item.anteprimaStile}}">
+<dc-import name="Anteprima" tipo="{{item.tipo}}" hint-size="100%,100%"></dc-import>
+<sc-if value="{{item.inOnda}}" hint-placeholder-val="{{ false }}">
+<span style="position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 12px; background: rgba(7,17,31,0.85); color: #d3f0a5; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.06em"><span style="width: 6px; height: 6px; border-radius: 3px; background: #7AB52A"></span>IN ONDA</span>
+</sc-if>
+</button>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{item.titolo}}</span>
+<span style="font-size: 12px; color: #a9bbcf">{{item.metaCompleta}}</span>
+</div>
+<div style="display: flex; gap: 4px; flex: none">
+<sc-if value="{{item.mio}}" hint-placeholder-val="{{ false }}">
+<button type="button" aria-label="{{item.etichettaElimina}}" title="Elimina dalla libreria" onClick="{{item.elimina}}" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: transparent; color: #ff9b8f; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M6 7l1 13h10l1-13"></path></svg></button>
+</sc-if>
+<button type="button" aria-label="{{item.azione}}" title="{{item.azione}}" onClick="{{item.alterna}}" style="{{item.btnStyle}}">
+<sc-if value="{{item.inPlaylist}}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></sc-if>
+<sc-if value="{{item.fuori}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+</button>
+</div>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{mostraZonaImport}}" hint-placeholder-val="{{ true }}">
+<div onDragOver="{{zonaSopra}}" onDrop="{{zonaRilascia}}" style="min-height: 150px; border: 1.5px dashed #2a4568; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px; text-align: center; color: #a9bbcf">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b2e068" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+<span style="font-weight: 700; color: #e8eef6">Trascina qui un file</span>
+<span style="font-size: 12px">Immagini, video o pagine HTML</span>
+</div>
+</sc-if>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{suImpostazioni}}" hint-placeholder-val="{{ false }}">
+<section aria-labelledby="titolo-impostazioni" style="display: flex; flex-direction: column; gap: 28px; max-width: 860px">
+<h2 id="titolo-impostazioni" style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em">Impostazioni</h2>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #a9bbcf">MONITOR</h3>
+<div style="display: flex; flex-direction: column; gap: 2px; border-radius: 14px; overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 18px 20px; background: #0c1b31">
+<div style="display: flex; gap: 6px; align-items: flex-start; flex: none">
+<sc-for list="{{monitor}}" as="m" hint-placeholder-count="2">
+<div style="{{m.miniStile}}">{{m.numero}}</div>
+</sc-for>
+</div>
+<div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 700">{{monitorTitolo}}</span>
+<span style="color: #a9bbcf; font-size: 13px">Il programma li trova da solo all'avvio. Se colleghi o scolleghi un monitor, o cambi risoluzione, lo sfondo si adatta senza riavviare.</span>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 300px"><span style="font-weight: 700">Con più monitor</span><span style="color: #a9bbcf; font-size: 13px">{{modoDescrizione}}</span></div>
+<div role="group" aria-label="Con più monitor" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #07111f; border: 1px solid #16304f">
+<sc-for list="{{modiMonitor}}" as="c" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{c.premuto}}" onClick="{{c.scegli}}" style="{{c.stile}}">{{c.etichetta}}</button>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #a9bbcf">RIPRODUZIONE</h3>
+<div style="display: flex; flex-direction: column; gap: 2px; border-radius: 14px; overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Dissolvenza tra uno sfondo e l'altro</span><span style="color: #a9bbcf; font-size: 13px">Provala con "Successivo" nella scheda In onda</span></div>
+<div role="group" aria-label="Durata dissolvenza" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #07111f; border: 1px solid #16304f">
+<sc-for list="{{dissolvenze}}" as="c" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{c.premuto}}" onClick="{{c.scegli}}" style="{{c.stile}}">{{c.etichetta}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">I video cambiano a fine riproduzione</span><span style="color: #a9bbcf; font-size: 13px">Un video resta finché non finisce, anche se dura più dell'intervallo scelto</span></div>
+<button type="button" role="switch" aria-checked="{{fineVideo}}" aria-label="I video cambiano a fine riproduzione" onClick="{{alternaFineVideo}}" style="{{fineVideoTraccia}}"><span style="{{fineVideoPomello}}"></span></button>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #a9bbcf">PAUSA AUTOMATICA</h3>
+<div style="display: flex; flex-direction: column; gap: 2px; border-radius: 14px; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Quando il PC va a batteria</span><span style="color: #a9bbcf; font-size: 13px">L'animazione si ferma per risparmiare energia</span></div>
+<button type="button" role="switch" aria-checked="{{batteria}}" aria-label="Pausa quando il PC va a batteria" onClick="{{alternaBatteria}}" style="{{batteriaTraccia}}"><span style="{{batteriaPomello}}"></span></button>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Giochi, video o presentazioni a schermo intero</span><span style="color: #a9bbcf; font-size: 13px">Anche con sessione bloccata o monitor spenti</span></div>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #b2e068">SEMPRE</span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Finestre ingrandite</span><span style="color: #a9bbcf; font-size: 13px">La rotazione continua: lo sfondo si ferma solo se nessun monitor mostra il desktop</span></div>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #a9bbcf">NON FERMANO</span>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #a9bbcf">SISTEMA</h3>
+<div style="display: flex; flex-direction: column; gap: 2px; border-radius: 14px; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Avvia con Windows</span><span style="color: #a9bbcf; font-size: 13px">Lo sfondo parte da solo dopo l'accesso</span></div>
+<button type="button" role="switch" aria-checked="{{avvio}}" aria-label="Avvia con Windows" onClick="{{alternaAvvio}}" style="{{avvioTraccia}}"><span style="{{avvioPomello}}"></span></button>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Log diagnostici</span><span style="color: #a9bbcf; font-size: 13px">Utili all'assistenza IT in caso di problemi</span></div>
+<button type="button" onClick="{{apriLog}}" style="min-height: 40px; padding: 0 16px; border: 1px solid #22395a; border-radius: 20px; background: transparent; color: #e8eef6; font: inherit; font-weight: 600; cursor: pointer">Apri cartella</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: 10px 20px; background: #0c1b31; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700">Ripristina impostazioni aziendali</span><span style="color: #a9bbcf; font-size: 13px">Intervallo, ordine, monitor e opzioni tornano alle scelte dell'IT. La libreria resta com'è.</span></div>
+<button type="button" onClick="{{ripristina}}" style="min-height: 40px; padding: 0 16px; border: 1px solid #22395a; border-radius: 20px; background: transparent; color: #e8eef6; font: inherit; font-weight: 600; cursor: pointer">Ripristina</button>
+</div>
+</div>
+</div>
+</section>
+</sc-if>
+
+</main>
+
+<sc-if value="{{mostraAvviso}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); padding: 12px 20px; border-radius: 24px; background: #e8eef6; color: #07111f; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,0.4); animation: ei-avviso 0.25s ease-out; z-index: 20">{{avviso}}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"monitorCollegati":{"editor":"enum","options":["1","2","3"],"default":"2","section":"Simulazione"},"tempoAccelerato":{"editor":"boolean","default":false,"section":"Simulazione"},"$preview":{"width":1360,"height":1000}}'>
+class Component extends DCLogic {
+  iniziale() {
+    return {
+      lib: [
+        { id: 'onda-di-luce', tipo: 'onda-di-luce', titolo: 'Onda di luce', meta: 'Energy Italy', mio: false },
+        { id: 'onde-di-energia', tipo: 'onde-di-energia', titolo: 'Onde di energia', meta: 'Energy Italy', mio: false },
+        { id: 'paesaggio-rinnovabile', tipo: 'paesaggio-rinnovabile', titolo: 'Paesaggio rinnovabile', meta: 'Energy Italy', mio: false },
+        { id: 'circuito', tipo: 'circuito', titolo: 'Circuito', meta: 'Energy Italy', mio: false },
+        { id: 'aurora', tipo: 'aurora', titolo: 'Aurora', meta: 'Energy Italy', mio: false },
+        { id: 'montagne', tipo: 'immagine', titolo: "Montagne all'alba", meta: 'Immagine JPG', mio: true },
+        { id: 'timelapse', tipo: 'video', titolo: 'Timelapse ufficio', meta: 'Video MP4', mio: true, durata: 160 },
+        { id: 'orologio', tipo: 'html', titolo: 'Orologio minimal', meta: 'Pagina web HTML', mio: true }
+      ],
+      playlist: ['onda-di-luce', 'onde-di-energia', 'timelapse', 'paesaggio-rinnovabile', 'circuito', 'aurora', 'orologio'],
+      corrente: 'onda-di-luce',
+      strati: ['onda-di-luce', 'onda-di-luce'],
+      attivo: 0,
+      storico: [],
+      inPausa: false,
+      tab: 'onda',
+      filtro: 'tutti',
+      trascinato: null,
+      avviso: '',
+      ...this.predefinite(),
+      totale: 1800,
+      restante: 1122
+    };
+  }
+
+  predefinite() {
+    return {
+      valore: 30,
+      unita: 'minuti',
+      intervalloTesto: '30',
+      errore: '',
+      rotazioneAttiva: true,
+      fineVideo: true,
+      ordine: 'sequenziale',
+      dissolvenza: 2,
+      modoMonitor: 'estendi',
+      batteria: true,
+      avvio: true
+    };
+  }
+
+  st() {
+    return Object.assign(this.iniziale(), this.state || {});
+  }
+
+  componentDidMount() {
+    if (!this.state || !this.state.lib) this.setState(this.iniziale());
+    this.timer = setInterval(() => this.tick(), 1000);
+  }
+
+  componentDidUpdate(prima) {
+    if (prima.monitorCollegati !== this.props.monitorCollegati) {
+      const n = this.nMonitor();
+      this.avvisa(n === 1 ? 'Rilevato 1 monitor: lo sfondo si è adattato' : 'Rilevati ' + n + ' monitor: lo sfondo si è adattato');
+    }
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.timer);
+    clearTimeout(this.timerAvviso);
+  }
+
+  nMonitor() {
+    const n = parseInt(this.props.monitorCollegati ?? '2', 10);
+    return n >= 1 && n <= 3 ? n : 2;
+  }
+
+  avvisa(testo) {
+    clearTimeout(this.timerAvviso);
+    this.setState({ avviso: testo });
+    this.timerAvviso = setTimeout(() => this.setState({ avviso: '' }), 2600);
+  }
+
+  voce(s, id) {
+    return s.lib.find((v) => v.id === id);
+  }
+
+  secondiIntervallo(s) {
+    if (!s.rotazioneAttiva) return 0;
+    return s.valore * (s.unita === 'ore' ? 3600 : 60);
+  }
+
+  // Durata di permanenza di uno sfondo: un video con "fine riproduzione" attiva resta per tutta la sua durata.
+  permanenza(s, v) {
+    if (!s.rotazioneAttiva) return 0;
+    if (v && v.tipo === 'video' && s.fineVideo && v.durata) return v.durata;
+    return this.secondiIntervallo(s);
+  }
+
+  tempiPer(s, v) {
+    const totale = this.permanenza(s, v);
+    return { totale, restante: totale };
+  }
+
+  tick() {
+    const s = this.st();
+    if (s.inPausa || !s.rotazioneAttiva || !s.totale) return;
+    const passo = this.props.tempoAccelerato ? 60 : 1;
+    const r = s.restante - passo;
+    if (r <= 0) this.vai(this.prossimo(s));
+    else this.setState({ restante: r });
+  }
+
+  prossimo(s) {
+    const pl = s.playlist.filter((id) => this.voce(s, id));
+    if (!pl.length) return s.corrente;
+    if (s.ordine === 'casuale') {
+      const altri = pl.filter((id) => id !== s.corrente);
+      if (!altri.length) return pl[0];
+      return altri[Math.floor(Math.random() * altri.length)];
+    }
+    const i = pl.indexOf(s.corrente);
+    return pl[(i + 1) % pl.length];
+  }
+
+  vai(id, extra) {
+    const s = this.st();
+    const v = this.voce(s, id);
+    if (!v) return;
+    const tempi = this.tempiPer(s, v);
+    if (id === s.corrente) {
+      this.setState(Object.assign(tempi, extra || {}));
+      return;
+    }
+    const nuovo = 1 - s.attivo;
+    const strati = s.strati.slice();
+    strati[nuovo] = v.tipo;
+    this.setState(Object.assign({
+      corrente: id,
+      strati,
+      attivo: nuovo,
+      storico: s.storico.concat([s.corrente]).slice(-20)
+    }, tempi, extra || {}));
+  }
+
+  precedente() {
+    const s = this.st();
+    if (s.storico.length) {
+      const id = s.storico[s.storico.length - 1];
+      this.vai(id, { storico: s.storico.slice(0, -1) });
+      return;
+    }
+    const pl = s.playlist.filter((id) => this.voce(s, id));
+    if (!pl.length) return;
+    const i = pl.indexOf(s.corrente);
+    this.vai(pl[(i - 1 + pl.length) % pl.length], { storico: [] });
+  }
+
+  // Applica una modifica alle regole di rotazione e riparte il conteggio con la nuova durata.
+  cambiaRegole(patch) {
+    const s = Object.assign(this.st(), patch);
+    const v = this.voce(s, s.corrente);
+    this.setState(Object.assign({}, patch, this.tempiPer(s, v)));
+  }
+
+  maxPer(unita) {
+    return unita === 'ore' ? 24 : 1440;
+  }
+
+  cambiaValore(testo) {
+    const s = this.st();
+    const max = this.maxPer(s.unita);
+    const n = Number(testo);
+    if (testo !== '' && Number.isInteger(n) && n >= 1 && n <= max) {
+      this.cambiaRegole({ intervalloTesto: testo, valore: n, errore: '' });
+    } else {
+      this.setState({ intervalloTesto: testo, errore: 'Scrivi un numero intero da 1 a ' + max + ' ' + s.unita });
+    }
+  }
+
+  confermaValore() {
+    const s = this.st();
+    if (s.errore) this.setState({ intervalloTesto: String(s.valore), errore: '' });
+  }
+
+  cambiaUnita(unita) {
+    const s = this.st();
+    const valore = Math.min(s.valore, this.maxPer(unita));
+    this.cambiaRegole({ unita, valore, intervalloTesto: String(valore), errore: '' });
+  }
+
+  togliDallaPlaylist(id) {
+    const s = this.st();
+    const v = this.voce(s, id);
+    this.setState({ playlist: s.playlist.filter((x) => x !== id) });
+    this.avvisa('Tolto dalla playlist: ' + (v ? v.titolo : ''));
+  }
+
+  aggiungiAllaPlaylist(id) {
+    const s = this.st();
+    const v = this.voce(s, id);
+    if (s.playlist.includes(id)) return;
+    this.setState({ playlist: s.playlist.concat([id]) });
+    this.avvisa('Aggiunto alla playlist: ' + (v ? v.titolo : ''));
+  }
+
+  elimina(id) {
+    const s = this.st();
+    const v = this.voce(s, id);
+    const lib = s.lib.filter((x) => x.id !== id);
+    const playlist = s.playlist.filter((x) => x !== id);
+    if (s.corrente === id) {
+      const dopo = playlist[0] || lib[0].id;
+      this.vai(dopo, { lib, playlist, storico: [] });
+    } else {
+      this.setState({ lib, playlist, storico: s.storico.filter((x) => x !== id) });
+    }
+    this.avvisa('Eliminato dalla libreria: ' + (v ? v.titolo : ''));
+  }
+
+  sposta(da, a) {
+    if (!da || da === a) return;
+    const s = this.st();
+    const pl = s.playlist.filter((x) => x !== da);
+    const i = pl.indexOf(a);
+    const j = s.playlist.indexOf(da) < s.playlist.indexOf(a) ? i + 1 : i;
+    pl.splice(j, 0, da);
+    this.setState({ playlist: pl, trascinato: null });
+  }
+
+  // Legge la durata vera di un video importato, senza caricarlo da nessuna parte.
+  leggiDurata(file, id) {
+    try {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        const durata = Math.round(video.duration);
+        URL.revokeObjectURL(url);
+        if (!Number.isFinite(durata) || durata <= 0) return;
+        const s = this.st();
+        const lib = s.lib.map((v) => (v.id === id ? Object.assign({}, v, { durata }) : v));
+        const patch = { lib };
+        if (s.corrente === id) Object.assign(patch, this.tempiPer(Object.assign({}, s, { lib }), lib.find((v) => v.id === id)));
+        this.setState(patch);
+      };
+      video.onerror = () => URL.revokeObjectURL(url);
+      video.src = url;
+    } catch (err) { }
+  }
+
+  importa(lista) {
+    const files = Array.from(lista || []);
+    if (!files.length) return;
+    const s = this.st();
+    const IMG = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'];
+    const VID = ['mp4', 'webm', 'mov', 'mkv', 'avi'];
+    const nuovi = [];
+    const video = [];
+    let scartati = 0;
+    files.forEach((f, i) => {
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      const mime = f.type || '';
+      let tipo = null;
+      let meta = '';
+      if (mime.indexOf('image/') === 0 || IMG.includes(ext)) { tipo = 'immagine'; meta = 'Immagine ' + ext.toUpperCase(); }
+      else if (mime.indexOf('video/') === 0 || VID.includes(ext)) { tipo = 'video'; meta = 'Video ' + ext.toUpperCase(); }
+      else if (ext === 'html' || ext === 'htm') { tipo = 'html'; meta = 'Pagina web HTML'; }
+      if (!tipo) { scartati += 1; return; }
+      const id = 'u' + Date.now() + '-' + i;
+      nuovi.push({ id, tipo, titolo: f.name.replace(/\.[^.]+$/, ''), meta, mio: true });
+      if (tipo === 'video') video.push({ f, id });
+    });
+    if (nuovi.length) this.setState({ lib: s.lib.concat(nuovi), filtro: s.filtro === 'energy' ? 'tutti' : s.filtro });
+    video.forEach((x) => this.leggiDurata(x.f, x.id));
+    let testo = nuovi.length === 1 ? 'Aggiunto alla libreria: ' + nuovi[0].titolo : nuovi.length + ' sfondi aggiunti alla libreria';
+    if (!nuovi.length) testo = 'Formato non supportato: usa immagini, video o pagine HTML';
+    else if (scartati) testo += ', ' + scartati + ' file non supportati';
+    this.avvisa(testo);
+  }
+
+  orologio(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const x = sec % 60;
+    const due = (n) => String(n).padStart(2, '0');
+    return h > 0 ? h + ':' + due(m) + ':' + due(x) : due(m) + ':' + due(x);
+  }
+
+  metaCompleta(v) {
+    return v.tipo === 'video' && v.durata ? v.meta + ', ' + this.orologio(v.durata) : v.meta;
+  }
+
+  pillola(attiva) {
+    return 'min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; font: inherit; cursor: pointer; ' +
+      (attiva ? 'background: #1E5B8E; color: #ffffff; font-weight: 700;' : 'background: transparent; color: #c6d4e3; font-weight: 600;');
+  }
+
+  interruttore(on) {
+    return {
+      traccia: 'position: relative; flex: none; width: 46px; height: 26px; border-radius: 13px; border: 0; padding: 0; cursor: pointer; background: ' + (on ? '#7AB52A' : '#2a3f5c'),
+      pomello: 'position: absolute; top: 3px; left: ' + (on ? '23px' : '3px') + '; width: 20px; height: 20px; border-radius: 10px; background: #ffffff; transition: left 0.2s'
+    };
+  }
+
+  renderVals() {
+    const s = this.st();
+    const corrente = this.voce(s, s.corrente) || s.lib[0];
+    const pl = s.playlist.map((id) => this.voce(s, id)).filter(Boolean);
+    const pos = pl.findIndex((v) => v.id === s.corrente);
+    const casuale = s.ordine === 'casuale';
+    const spenta = !s.rotazioneAttiva;
+    const suVideo = corrente.tipo === 'video' && s.fineVideo && !!corrente.durata && !spenta;
+    const tempo = spenta ? '--:--' : this.orologio(Math.max(0, s.restante));
+    const progresso = spenta || !s.totale ? 0 : Math.max(0, Math.min(100, Math.round((1 - s.restante / s.totale) * 1000) / 10));
+    const poi = pl.length ? pl[(pos + 1) % pl.length] : null;
+
+    let tempoNota = 'al prossimo cambio';
+    if (suVideo) tempoNota = 'alla fine del video';
+    if (spenta) tempoNota = 'cambio solo a mano';
+    else if (s.inPausa) tempoNota = 'in pausa';
+
+    let poiTesto = poi ? poi.titolo : 'Nessuno';
+    if (casuale && pl.length > 1) poiTesto = 'A sorpresa dalla playlist';
+    if (spenta) poiTesto = 'Solo quando premi Successivo';
+
+    // Monitor rilevati: con "Estendi" ogni monitor mostra la sua fetta della stessa scena, con "Duplica" la scena intera.
+    const n = this.nMonitor();
+    const estendi = s.modoMonitor === 'estendi' || n === 1;
+    const DISPOSIZIONI = {
+      1: [{ nome: 'DISPLAY1', principale: true, sfalsamento: 0 }],
+      2: [{ nome: 'DISPLAY1', principale: false, sfalsamento: 6 }, { nome: 'DISPLAY2', principale: true, sfalsamento: 0 }],
+      3: [{ nome: 'DISPLAY1', principale: false, sfalsamento: 6 }, { nome: 'DISPLAY2', principale: true, sfalsamento: 0 }, { nome: 'DISPLAY3', principale: false, sfalsamento: 3 }]
+    };
+    const strato = (i) => 'position: absolute; inset: 0; transition: opacity ' + s.dissolvenza + 's ease; opacity: ' + (s.attivo === i ? 1 : 0);
+    const monitor = DISPOSIZIONI[n].map((d, i) => ({
+      numero: String(i + 1),
+      etichetta: d.nome + '  1920x1080' + (d.principale ? '  PRINCIPALE' : ''),
+      colonnaStile: 'flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; margin-top: ' + d.sfalsamento + 'px',
+      colloStile: 'width: 22%; height: ' + (18 + 6 - d.sfalsamento) + 'px; background: linear-gradient(180deg, #0c1a2e, #13243c)',
+      interno: estendi
+        ? 'position: absolute; top: 0; left: ' + (-i * 100) + '%; width: ' + (n * 100) + '%; height: 100%'
+        : 'position: absolute; inset: 0',
+      logoW: estendi ? (22 / n).toFixed(2) + '%' : '22%',
+      strato0: strato(0),
+      strato1: strato(1),
+      tipo0: s.strati[0],
+      tipo1: s.strati[1],
+      miniStile: 'width: 72px; height: 40px; margin-top: ' + Math.round(d.sfalsamento / 2) + 'px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: \'IBM Plex Mono\', monospace; font-size: 12px; ' +
+        (d.principale ? 'border: 1.5px solid #7AB52A; color: #d3f0a5;' : 'border: 1.5px solid #5d7593; color: #a9bbcf;')
+    }));
+    const altezzaTot = n === 1 ? 1080 : 1087;
+    const scenaDidascalia = n === 1
+      ? 'IL TUO DESKTOP ADESSO  /  1 MONITOR  /  1920 x 1080 px'
+      : (estendi
+        ? 'IL TUO DESKTOP ADESSO  /  ' + n + ' MONITOR ESTESI  /  ' + (n * 1920) + ' x ' + altezzaTot + ' px'
+        : 'IL TUO DESKTOP ADESSO  /  STESSA SCENA SU ' + n + ' MONITOR');
+    const modiMonitor = [
+      { id: 'estendi', etichetta: 'Estendi' },
+      { id: 'duplica', etichetta: 'Duplica' }
+    ].map((o) => ({
+      etichetta: o.etichetta,
+      premuto: s.modoMonitor === o.id,
+      stile: this.pillola(s.modoMonitor === o.id),
+      scegli: () => {
+        this.setState({ modoMonitor: o.id });
+        this.avvisa(o.id === 'estendi' ? "Un'unica scena su tutti i monitor" : 'La stessa scena su ogni monitor');
+      }
+    }));
+
+    const schede = [
+      { id: 'onda', etichetta: 'In onda' },
+      { id: 'libreria', etichetta: 'Libreria' },
+      { id: 'impostazioni', etichetta: 'Impostazioni' }
+    ].map((t) => {
+      const attiva = s.tab === t.id;
+      return {
+        ...t,
+        ariaCorrente: attiva ? 'page' : 'false',
+        stile: 'display: flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 20px; border: 0; font: inherit; cursor: pointer; ' +
+          (attiva ? 'background: #e8eef6; color: #07111f; font-weight: 700;' : 'background: transparent; color: #a9bbcf; font-weight: 600;'),
+        apri: () => this.setState({ tab: t.id })
+      };
+    });
+
+    const ordini = [
+      { id: 'sequenziale', etichetta: 'In ordine' },
+      { id: 'casuale', etichetta: 'Casuale' }
+    ].map((o) => ({
+      etichetta: o.etichetta,
+      premuto: s.ordine === o.id,
+      stile: this.pillola(s.ordine === o.id),
+      scegli: () => this.setState({ ordine: o.id })
+    }));
+
+    const dissolvenze = [1, 2, 4].map((d) => ({
+      etichetta: d + ' s',
+      premuto: s.dissolvenza === d,
+      stile: this.pillola(s.dissolvenza === d),
+      scegli: () => this.setState({ dissolvenza: d })
+    }));
+
+    const BOX = 'flex: none; width: 200px; display: flex; flex-direction: column; gap: 10px; padding: 10px; border-radius: 14px; box-sizing: border-box; cursor: grab; transition: opacity 0.15s; ';
+    const playlist = pl.map((v, i) => {
+      const attivo = v.id === s.corrente;
+      return {
+        ...v,
+        num: String(i + 1).padStart(2, '0'),
+        attivo,
+        inattivo: !attivo,
+        progresso,
+        metaCompleta: this.metaCompleta(v),
+        boxStyle: BOX + (attivo ? 'background: #0f2440; border: 1px solid #7AB52A;' : 'background: #0c1b31; border: 1px solid #16304f;') + (s.trascinato === v.id ? ' opacity: 0.4;' : ''),
+        etichettaMostra: 'Mostra ' + v.titolo + ' ora sul desktop',
+        etichettaTogli: 'Togli ' + v.titolo + ' dalla playlist',
+        mostra: () => this.vai(v.id),
+        togli: () => this.togliDallaPlaylist(v.id),
+        inizioTrascina: (e) => {
+          try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', v.id); } catch (err) { }
+          this.setState({ trascinato: v.id });
+        },
+        sopra: (e) => { if (this.st().trascinato) e.preventDefault(); },
+        rilascia: (e) => { e.preventDefault(); this.sposta(this.st().trascinato, v.id); },
+        fineTrascina: () => this.setState({ trascinato: null })
+      };
+    });
+
+    const filtri = [
+      { id: 'tutti', etichetta: 'Tutti ' + s.lib.length },
+      { id: 'energy', etichetta: 'Energy Italy ' + s.lib.filter((v) => !v.mio).length },
+      { id: 'miei', etichetta: 'I miei ' + s.lib.filter((v) => v.mio).length }
+    ].map((f) => {
+      const attivo = s.filtro === f.id;
+      return {
+        etichetta: f.etichetta,
+        premuto: attivo,
+        stile: 'min-height: 40px; padding: 0 14px; border-radius: 20px; background: transparent; font: inherit; cursor: pointer; ' +
+          (attivo ? 'border: 1px solid #e8eef6; color: #e8eef6; font-weight: 700;' : 'border: 1px solid #22395a; color: #a9bbcf; font-weight: 600;'),
+        scegli: () => this.setState({ filtro: f.id })
+      };
+    });
+
+    const BTN = 'flex: none; width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; ';
+    const libreria = s.lib
+      .filter((v) => s.filtro === 'tutti' || (s.filtro === 'miei' ? v.mio : !v.mio))
+      .map((v) => {
+        const inPlaylist = s.playlist.includes(v.id);
+        const inOnda = v.id === s.corrente;
+        return {
+          ...v,
+          inPlaylist,
+          fuori: !inPlaylist,
+          inOnda,
+          metaCompleta: this.metaCompleta(v),
+          azione: inPlaylist ? 'Togli dalla playlist' : 'Aggiungi alla playlist',
+          etichettaMostra: 'Mostra ' + v.titolo + ' ora sul desktop',
+          etichettaElimina: 'Elimina ' + v.titolo + ' dalla libreria',
+          anteprimaStile: 'position: relative; display: block; width: 100%; padding: 0; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; cursor: pointer; background: #0f1e35; ' +
+            (inOnda ? 'border: 1px solid #7AB52A; box-shadow: 0 0 0 1px #7AB52A;' : 'border: 1px solid #16304f;'),
+          btnStyle: BTN + (inPlaylist ? 'border: 0; background: rgba(122,181,42,0.18); color: #b2e068;' : 'border: 1px solid #22395a; background: transparent; color: #e8eef6;'),
+          mostra: () => this.vai(v.id),
+          alterna: () => (inPlaylist ? this.togliDallaPlaylist(v.id) : this.aggiungiAllaPlaylist(v.id)),
+          elimina: () => this.elimina(v.id)
+        };
+      });
+
+    const iBatteria = this.interruttore(s.batteria);
+    const iAvvio = this.interruttore(s.avvio);
+    const iFineVideo = this.interruttore(s.fineVideo);
+
+    let posizioneTesto = corrente.mio ? this.metaCompleta(corrente) : 'Animazione Energy Italy';
+    posizioneTesto += pos >= 0 ? ', ' + (pos + 1) + ' di ' + pl.length + ' nella playlist' : ', fuori dalla playlist';
+
+    const CAMPO = 'width: 64px; min-height: 36px; padding: 0 8px; border-radius: 8px; font: inherit; font-weight: 700; text-align: right; box-sizing: border-box; ';
+    const SELECT = 'min-height: 36px; padding: 0 8px; border-radius: 8px; border: 1px solid #22395a; font: inherit; font-weight: 600; cursor: pointer; ';
+
+    return {
+      schede,
+      suOnda: s.tab === 'onda',
+      suLibreria: s.tab === 'libreria',
+      suImpostazioni: s.tab === 'impostazioni',
+      statoTesto: s.inPausa ? 'IN PAUSA' : (n === 1 ? 'ATTIVO SU 1 MONITOR' : 'ATTIVO SU ' + n + ' MONITOR'),
+      statoPuntino: 'width: 8px; height: 8px; border-radius: 4px; flex: none; ' + (s.inPausa ? 'background: #f0b44c;' : 'background: #7AB52A; animation: ei-battito 2s ease-in-out infinite;'),
+      etichettaOnda: s.inPausa ? 'IN PAUSA' : 'IN ONDA',
+      etichettaOndaStile: 'display: flex; align-items: center; gap: 8px; font-family: \'IBM Plex Mono\', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: ' + (s.inPausa ? '#f0b44c' : '#b2e068'),
+      classeScena: s.inPausa ? 'ei-pausa' : '',
+      monitor,
+      piuMonitor: n > 1,
+      modiMonitor,
+      scenaDidascalia,
+      monitorTitolo: n === 1 ? 'Rilevato 1 monitor' : 'Rilevati ' + n + ' monitor',
+      modoDescrizione: s.modoMonitor === 'estendi'
+        ? "Estendi: un'unica scena attraversa tutti i monitor, logo solo su quello più a sinistra."
+        : 'Duplica: la stessa scena intera su ogni monitor, ognuna con il suo logo.',
+      corrente,
+      posizioneTesto,
+      tempo,
+      tempoNota,
+      progresso,
+      inPausa: s.inPausa,
+      inRiproduzione: !s.inPausa,
+      etichettaPausa: s.inPausa ? 'Riprendi' : 'Pausa',
+      alternaPausa: () => this.setState({ inPausa: !s.inPausa }),
+      successivo: () => this.vai(this.prossimo(s)),
+      precedente: () => this.precedente(),
+      poi: poi || corrente,
+      poiTesto,
+      poiSequenziale: !casuale && !!poi && !spenta,
+      poiCasuale: casuale || spenta,
+      dissolvenza: s.dissolvenza,
+      intervalloTesto: s.intervalloTesto,
+      unita: s.unita,
+      maxValore: this.maxPer(s.unita),
+      rotazioneSpenta: spenta,
+      errore: s.errore,
+      erroreVisibile: !!s.errore,
+      bordoIntervallo: s.errore ? '#ff8a7a' : '#16304f',
+      campoStile: CAMPO + (s.errore ? 'border: 1px solid #ff8a7a; ' : 'border: 1px solid #22395a; ') + (spenta ? 'background: transparent; color: #5d7593;' : 'background: #07111f; color: #e8eef6;'),
+      selectStile: SELECT + (spenta ? 'background: transparent; color: #5d7593;' : 'background: #07111f; color: #e8eef6;'),
+      maiStile: this.pillola(spenta),
+      cambiaValore: (e) => this.cambiaValore(e.target.value),
+      confermaValore: () => this.confermaValore(),
+      cambiaUnita: (e) => this.cambiaUnita(e.target.value),
+      alternaMai: () => this.cambiaRegole({ rotazioneAttiva: spenta, errore: '', intervalloTesto: String(s.valore) }),
+      fineVideo: s.fineVideo,
+      fineVideoTraccia: iFineVideo.traccia,
+      fineVideoPomello: iFineVideo.pomello,
+      alternaFineVideo: () => this.cambiaRegole({ fineVideo: !s.fineVideo }),
+      ordini,
+      dissolvenze,
+      playlist,
+      playlistVuota: pl.length === 0,
+      apriLibreria: () => this.setState({ tab: 'libreria' }),
+      filtri,
+      libreria,
+      nLibreria: s.lib.length,
+      nPlaylist: pl.length,
+      mostraZonaImport: s.filtro !== 'energy',
+      sceltaFile: (e) => { this.importa(e.target.files); e.target.value = ''; },
+      zonaSopra: (e) => e.preventDefault(),
+      zonaRilascia: (e) => { e.preventDefault(); if (e.dataTransfer) this.importa(e.dataTransfer.files); },
+      batteria: s.batteria,
+      batteriaTraccia: iBatteria.traccia,
+      batteriaPomello: iBatteria.pomello,
+      alternaBatteria: () => this.setState({ batteria: !s.batteria }),
+      avvio: s.avvio,
+      avvioTraccia: iAvvio.traccia,
+      avvioPomello: iAvvio.pomello,
+      alternaAvvio: () => this.setState({ avvio: !s.avvio }),
+      apriLog: () => this.avvisa('Nel programma si apre la cartella dei log'),
+      ripristina: () => { this.cambiaRegole(this.predefinite()); this.avvisa('Impostazioni aziendali ripristinate'); },
+      chiudi: () => this.avvisa("Il programma resta attivo nell'area di notifica"),
+      mostraAvviso: !!s.avviso,
+      avviso: s.avviso
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paesaggio rinnovabile</title>
+<link rel="stylesheet" href="comune/base.css">
+<style>
+.nastro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  animation: scorri var(--durata) linear infinite;
+  will-change: transform;
+}
+.nastro svg { position: absolute; top: 0; left: 0; }
+@keyframes scorri {
+  0% { transform: translateX(var(--periodo-negativo)); }
+  100% { transform: translateX(0); }
+}
+.turbina { position: absolute; width: 0; }
+.palo {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(90deg, #a9c6e2, #6f93b8);
+  clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+}
+.rotore { position: absolute; left: 0; top: 0; width: 0; height: 0; animation: gira 7s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+.pala {
+  position: absolute;
+  left: -5px;
+  bottom: 0;
+  width: 10px;
+  transform-origin: 50% 100%;
+  background: linear-gradient(90deg, #d5e4f2, #9dbad6);
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+}
+.mozzo { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: #dbe8f5; }
+.pannello {
+  position: absolute;
+  width: 52px;
+  height: 20px;
+  box-sizing: border-box;
+  transform: skewX(-35deg);
+  background: repeating-linear-gradient(90deg, transparent 0 12px, rgba(8,22,40,0.55) 12px 13px), linear-gradient(180deg, #4f90c8 0%, #2a5f93 50%, #173a63 100%);
+  border-top: 2px solid rgba(190,225,255,0.65);
+  overflow: hidden;
+}
+.riflesso {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 20%, rgba(214,245,160,0.85) 50%, rgba(255,255,255,0) 80%);
+  animation: riflesso 10s linear infinite;
+}
+@keyframes riflesso { 0% { opacity: 0; } 6% { opacity: 0.9; } 14% { opacity: 0; } 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="scena"></div>
+<img id="logo" src="img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+<script src="comune/sfondo.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Parametri: ?velocita=1
+  const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+  const GIRO = Math.PI * 2;
+
+  const basiTurbine = [
+    { x: 760, h: 300, op: 0.7, giro: 7.5 },
+    { x: 1180, h: 240, op: 0.6, giro: 6.2 },
+    { x: 1650, h: 330, op: 0.8, giro: 8.4 },
+    { x: 2250, h: 270, op: 0.65, giro: 6.8 },
+    { x: 2620, h: 310, op: 0.75, giro: 7.9 },
+    { x: 3080, h: 230, op: 0.6, giro: 5.9 },
+    { x: 3480, h: 290, op: 0.7, giro: 7.1 }
+  ];
+  const iniziCampi = [680, 1440, 2380, 3150];
+
+  Sfondo.avvia((s) => {
+    const W = s.larghezza;
+    const H = s.altezza;
+    const k = H / 1080;
+    const sx = W / 3840;
+    const P = W;
+
+    const lontano = (x) => k * (690 + 35 * Math.sin(GIRO * 2 * x / P + 0.4) + 22 * Math.sin(GIRO * 5 * x / P + 1.3) + 12 * Math.sin(GIRO * 9 * x / P));
+    const medio = (x) => k * (820 + 40 * Math.sin(GIRO * 3 * x / P + 2.0) + 18 * Math.sin(GIRO * 7 * x / P + 0.7));
+    const vicino = (x) => k * (975 + 22 * Math.sin(GIRO * 4 * x / P + 1.1) + 10 * Math.sin(GIRO * 11 * x / P + 2.5));
+    const linea = (f) => {
+      let d = '';
+      for (let x = 0; x <= 2 * P; x += 24) d += (x === 0 ? 'M' : 'L') + x + ',' + f(x).toFixed(1) + ' ';
+      return d;
+    };
+    const area = (f) => 'M0,' + H + ' ' + linea(f).replace('M', 'L') + 'L' + (2 * P) + ',' + H + ' Z';
+    const svg = (contenuto) => '<svg width="' + (2 * P) + '" height="' + H + '" viewBox="0 0 ' + (2 * P) + ' ' + H + '" aria-hidden="true">' + contenuto + '</svg>';
+    const nastro = (durataNastro, contenuto) =>
+      '<div class="nastro" style="width:' + (2 * P) + 'px;height:' + H + 'px;--durata:' + Math.round(durataNastro / velocita) +
+      's;--periodo-negativo:' + (-P) + 'px">' + contenuto + '</div>';
+
+    // Su aree strette (un solo monitor) metà delle pale e campi più corti, per non affollare la scena.
+    const turbineVisibili = basiTurbine.filter((b, i) => sx >= 0.75 || i % 2 === 0);
+    const pannelliPerCampo = Math.max(3, Math.round(9 * Math.min(1, sx)));
+
+    let turbine = '';
+    for (const scarto of [0, P]) {
+      turbineVisibili.forEach((b, i) => {
+        const x = b.x * sx + scarto;
+        const h = b.h * k;
+        const pala = Math.round(h * 0.42);
+        const giro = (b.giro / Math.sqrt(velocita)).toFixed(2);
+        turbine += '<div class="turbina" style="left:' + x.toFixed(0) + 'px;top:' + (lontano(x) + 10 * k - h).toFixed(0) + 'px;height:' + h.toFixed(0) + 'px;opacity:' + b.op + '">' +
+          '<div class="palo"></div>' +
+          '<div class="rotore" style="animation-duration:' + giro + 's;animation-delay:' + (-i * 1.3).toFixed(1) + 's">' +
+          [0, 120, 240].map((a) => '<div class="pala" style="height:' + pala + 'px;transform:rotate(' + a + 'deg)"></div>').join('') +
+          '</div><div class="mozzo"></div></div>';
+      });
+    }
+
+    let pannelli = '';
+    for (const scarto of [0, P]) {
+      for (const inizio of iniziCampi) {
+        for (let n = 0; n < pannelliPerCampo; n++) {
+          const x0 = inizio * sx + n * 60;
+          const x1 = x0 + 14;
+          const riga = (x, y) => '<div class="pannello" style="left:' + (x + scarto).toFixed(0) + 'px;top:' + y.toFixed(0) + 'px">' +
+            '<div class="riflesso" style="animation-delay:' + (x / P * 4).toFixed(2) + 's"></div></div>';
+          pannelli += riga(x0, medio(x0) - 12 * k) + riga(x1, medio(x1) + 14 * k);
+        }
+      }
+    }
+
+    let html = '';
+    html += '<div class="strato" style="background:' +
+      'radial-gradient(ellipse ' + (2600 * k) + 'px ' + (520 * k) + 'px at 55% 80%,rgba(122,181,42,0.26) 0%,rgba(122,181,42,0) 70%),' +
+      'radial-gradient(ellipse ' + (1800 * k) + 'px ' + (700 * k) + 'px at 85% 10%,rgba(30,91,142,0.35) 0%,rgba(30,91,142,0) 70%),' +
+      'linear-gradient(180deg,#08142a 0%,#0f2747 42%,#1b4a78 72%,#24608f 100%)"></div>';
+    html += nastro(360, turbine + svg('<path d="' + area(lontano) + '" fill="#173a63"/>'));
+    html += nastro(220, svg('<path d="' + area(medio) + '" fill="#102a4c"/>') + pannelli);
+    html += nastro(130, svg('<path d="' + area(vicino) + '" fill="#0a172b"/>' +
+      '<path d="' + linea(vicino) + '" fill="none" stroke="#7AB52A" stroke-width="2" opacity="0.7"/>'));
+
+    document.getElementById('scena').innerHTML = html;
+    Sfondo.posizionaLogo(document.getElementById('logo'), s, 150);
+  });
+})();
+</script>
+</body>
+</html>

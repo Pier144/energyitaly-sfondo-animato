@@ -1,0 +1,10 @@
+{
+  "versione": 1,
+  "animazioni": [
+    { "id": "onda-di-luce", "titolo": "Onda di luce", "file": "onda-di-luce.html", "parametri": { "ampiezza": "lieve", "durata": 16 } },
+    { "id": "onde-di-energia", "titolo": "Onde di energia", "file": "onde-di-energia.html", "parametri": { "durata": 80, "linee": 28 } },
+    { "id": "paesaggio-rinnovabile", "titolo": "Paesaggio rinnovabile", "file": "paesaggio-rinnovabile.html", "parametri": { "velocita": 1 } },
+    { "id": "circuito", "titolo": "Circuito", "file": "circuito.html", "parametri": { "tracce": 24, "velocita": 1 } },
+    { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "parametri": { "velocita": 1, "veli": 1 } }
+  ]
+}

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circuito</title>
+<link rel="stylesheet" href="comune/base.css">
+<style>
+.puntini {
+  background-image: radial-gradient(circle at 15px 15px, rgba(255,255,255,0.07) 0 1.5px, transparent 2px);
+  background-size: 30px 30px;
+}
+.alone, .nucleo {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 60 1000;
+  animation: corsa 9s linear infinite;
+}
+.alone { stroke: #7AB52A; stroke-width: 10px; opacity: 0.3; }
+.nucleo { stroke: #dcf7b0; stroke-width: 3px; }
+@keyframes corsa { from { stroke-dashoffset: 60; } to { stroke-dashoffset: -1000; } }
+</style>
+</head>
+<body>
+<div id="scena"></div>
+<img id="logo" src="img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+<script src="comune/sfondo.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Parametri: ?tracce=24&velocita=1  (tracce riferite a un'altezza di 1080 px)
+  const tracceBase = Math.max(4, Math.round(Sfondo.parametro('tracce', 24)));
+  const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+
+  Sfondo.avvia((s) => {
+    const W = s.larghezza;
+    const H = s.altezza;
+    const k = s.monitorLogo.h / 1080;
+    const m = s.monitorLogo;
+    const caso = Sfondo.casuale(11);
+    // Zona riservata al logo: le piste non ci entrano.
+    const zonaDestra = m.x + 640 * k;
+    const zonaAlto = m.y + m.h - 320 * k;
+    const nelMonitorLogo = (y) => y > zonaAlto && y < m.y + m.h;
+    const cerchio = (x, y) => 'M' + (x - 5) + ',' + y + ' a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 ';
+
+    const n = Math.max(4, Math.round(tracceBase * H / 1080));
+    let piste = '';
+    let piazzole = '';
+    let impulsi = '';
+    for (let i = 0; i < n; i++) {
+      let y = Math.round((70 + (i + 0.5) * ((H - 140) / n)) / 10) * 10;
+      let x = -20;
+      if (nelMonitorLogo(y)) {
+        x = Math.round(zonaDestra - 20 + caso() * 200);
+        piazzole += cerchio(x, y);
+      }
+      const punti = [[x, y]];
+      while (x < W + 20) {
+        x = Math.min(W + 40, Math.round(x + 160 + caso() * 560));
+        punti.push([x, y]);
+        if (x >= W + 20) break;
+        const salto = caso() < 0.5 ? 60 : 120;
+        let verso = caso() < 0.5 ? -1 : 1;
+        if (y + verso * salto < 60 || y + verso * salto > H - 60) verso = -verso;
+        if (x < zonaDestra && nelMonitorLogo(y + verso * salto)) verso = -1;
+        x += salto;
+        y += verso * salto;
+        punti.push([x, y]);
+        if (caso() < 0.35) piazzole += cerchio(x, y);
+      }
+      const d = 'M' + punti.map((p) => p[0] + ',' + p[1]).join(' L');
+      piste += d + ' ';
+      const durata = (6 + caso() * 8) / velocita;
+      const ritardo = (-caso() * durata).toFixed(2);
+      const stile = 'animation-duration:' + durata.toFixed(2) + 's;animation-delay:' + ritardo + 's';
+      impulsi += '<svg class="strato" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
+        '<path class="alone" d="' + d + '" pathLength="1000" style="' + stile + '"/>' +
+        '<path class="nucleo" d="' + d + '" pathLength="1000" style="' + stile + '"/></svg>';
+    }
+
+    let html = '';
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1600 * k) + 'px ' + (900 * k) + 'px at 100% 0%,rgba(122,181,42,0.3) 0%,rgba(122,181,42,0) 65%),' +
+      'linear-gradient(100deg,#0a1527 0%,#0e223d 50%,#132f52 100%)"></div>';
+    html += '<div class="strato puntini"></div>';
+    html += '<svg class="strato" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
+      '<path d="' + piste + '" fill="none" stroke="#214d7a" stroke-width="2.5" stroke-linejoin="round" opacity="0.85"/>' +
+      '<path d="' + piazzole + '" fill="#0c1a30" stroke="#3d74a6" stroke-width="2"/></svg>';
+    html += impulsi;
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1200 * k) + 'px ' + (650 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
+      'px,rgba(10,21,39,0.92) 0%,rgba(10,21,39,0) 70%)"></div>';
+
+    document.getElementById('scena').innerHTML = html;
+    Sfondo.posizionaLogo(document.getElementById('logo'), s);
+  });
+})();
+</script>
+</body>
+</html>

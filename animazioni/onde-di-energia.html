@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onde di energia</title>
+<link rel="stylesheet" href="comune/base.css">
+<style>
+.nastro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  animation: scorri var(--durata) linear infinite;
+  will-change: transform;
+}
+.nastro svg { position: absolute; top: 0; left: 0; }
+@keyframes scorri {
+  0% { transform: translateX(var(--periodo-negativo)); }
+  100% { transform: translateX(0); }
+}
+</style>
+</head>
+<body>
+<div id="scena"></div>
+<img id="logo" src="img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+<script src="comune/sfondo.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Parametri: ?durata=80&linee=28
+  const durata = Sfondo.parametro('durata', 80);
+  const linee = Math.max(4, Math.round(Sfondo.parametro('linee', 28)));
+  const GIRO = Math.PI * 2;
+
+  Sfondo.avvia((s) => {
+    const W = s.larghezza;
+    const H = s.altezza;
+    const k = H / 1080;
+    const m = s.monitorLogo;
+    // Il periodo orizzontale è la larghezza della finestra: il nastro è largo due periodi e scorre di uno.
+    const P = W;
+
+    const tratto = (f) => {
+      let d = '';
+      for (let x = 0; x <= 2 * P; x += 24) d += (x === 0 ? 'M' : 'L') + x + ',' + f(x).toFixed(1) + ' ';
+      return d;
+    };
+    const nastroA = (t) => (x) => k * (520 + 170 * Math.sin(GIRO * 2 * x / P + 0.9 * t) + 70 * Math.sin(GIRO * 3 * x / P + 2.1 - 1.4 * t) + (t - 0.5) * 140);
+    const nastroB = (t) => (x) => k * (290 + 100 * Math.sin(GIRO * x / P + 1 + 1.2 * t) + 50 * Math.sin(GIRO * 4 * x / P + 0.5 + t) + (t - 0.5) * 90);
+    const livelli = (famiglia, quante, gruppi) => {
+      const out = Array.from({ length: gruppi }, () => '');
+      for (let i = 0; i < quante; i++) {
+        const t = i / (quante - 1);
+        const g = Math.min(gruppi - 1, Math.floor(Math.abs(t - 0.5) * 2 * gruppi));
+        out[g] += tratto(famiglia(t));
+      }
+      return out;
+    };
+    const a = livelli(nastroA, linee, 4);
+    const b = livelli(nastroB, Math.max(4, Math.round(linee * 0.6)), 2);
+
+    const svg = (contenuto) => '<svg width="' + (2 * P) + '" height="' + H + '" viewBox="0 0 ' + (2 * P) + ' ' + H + '" aria-hidden="true">' + contenuto + '</svg>';
+    const traccia = (d, colore, spessore, opacita) =>
+      '<path d="' + d + '" fill="none" stroke="' + colore + '" stroke-width="' + spessore + '" opacity="' + opacita + '"/>';
+
+    const nastro = (durataNastro, contenuto) =>
+      '<div class="nastro" style="width:' + (2 * P) + 'px;height:' + H + 'px;--durata:' + durataNastro + 's;--periodo-negativo:' + (-P) + 'px">' + svg(contenuto) + '</div>';
+
+    const gradiente =
+      '<defs><linearGradient id="ondeColore" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + (2 * P) + '" y2="0">' +
+      '<stop offset="0" stop-color="#2f78b5"/><stop offset="0.25" stop-color="#7AB52A"/><stop offset="0.5" stop-color="#2f78b5"/>' +
+      '<stop offset="0.75" stop-color="#7AB52A"/><stop offset="1" stop-color="#2f78b5"/></linearGradient></defs>';
+    const url = 'url(#ondeColore)';
+
+    let html = '';
+    html += '<div class="strato" style="background:' +
+      'radial-gradient(ellipse ' + (1700 * k) + 'px ' + (700 * k) + 'px at 72% 52%,rgba(122,181,42,0.14) 0%,rgba(122,181,42,0) 70%),' +
+      'radial-gradient(ellipse ' + (1400 * k) + 'px ' + (600 * k) + 'px at 25% 30%,rgba(30,91,142,0.35) 0%,rgba(30,91,142,0) 70%),' +
+      'linear-gradient(180deg,#0c182c 0%,#112743 55%,#163556 100%)"></div>';
+    html += nastro(Math.round(durata * 1.6), traccia(b[1], '#4f8fc4', 1, 0.18) + traccia(b[0], '#4f8fc4', 1.4, 0.4));
+    html += nastro(durata, gradiente +
+      traccia(a[0], url, 12, 0.07) + traccia(a[3], url, 1, 0.18) + traccia(a[2], url, 1.2, 0.35) +
+      traccia(a[1], url, 1.6, 0.6) + traccia(a[0], url, 2.2, 0.95));
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1300 * k) + 'px ' + (700 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
+      'px,rgba(12,24,44,0.9) 0%,rgba(12,24,44,0) 70%)"></div>';
+
+    document.getElementById('scena').innerHTML = html;
+    Sfondo.posizionaLogo(document.getElementById('logo'), s);
+  });
+})();
+</script>
+</body>
+</html>
