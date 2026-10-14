@@ -46,13 +46,15 @@
   'use strict';
   // Parametri: ?velocita=1&veli=1 (veli=0 per toglierli)
   const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
-  const conVeli = Sfondo.parametro('veli', 1) !== 0;
+  const conVeli = Sfondo.interruttore('veli', true);
+  // Colori dalla tavolozza (sfondo.js).
+  const C = Sfondo.colori();
 
   const basiMacchie = [
-    { x: 520, y: 220, w: 1700, h: 900, c: 'rgba(122,181,42,0.36)', r: 16 },
-    { x: 1450, y: 820, w: 1900, h: 900, c: 'rgba(30,91,142,0.8)', r: 21 },
-    { x: 2450, y: 300, w: 1800, h: 1000, c: 'rgba(122,181,42,0.3)', r: 18 },
-    { x: 3300, y: 760, w: 1600, h: 850, c: 'rgba(74,144,200,0.38)', r: 14 }
+    { x: 520, y: 220, w: 1700, h: 900, c: Sfondo.rgba('accento', 0.36), r: 16 },
+    { x: 1450, y: 820, w: 1900, h: 900, c: Sfondo.rgba('secondario', 0.8), r: 21 },
+    { x: 2450, y: 300, w: 1800, h: 1000, c: Sfondo.rgba('accento', 0.3), r: 18 },
+    { x: 3300, y: 760, w: 1600, h: 850, c: Sfondo.rgba('secondarioChiaro', 0.38), r: 14 }
   ];
   const basiVeli = [
     { x: 300, w: 620, top: -20, a: 0.22, r: 7 },
@@ -81,7 +83,7 @@
         const h = b.h * k;
         macchie += '<div class="macchia" style="left:' + (b.x * sx + scarto - w / 2).toFixed(0) + 'px;top:' + (b.y * k - h / 2).toFixed(0) +
           'px;width:' + w.toFixed(0) + 'px;height:' + h.toFixed(0) + 'px">' +
-          '<div class="macchia-dentro" style="animation-duration:' + b.r + 's;background:radial-gradient(closest-side,' + b.c + ' 0%,rgba(7,17,31,0) 100%)"></div></div>';
+          '<div class="macchia-dentro" style="animation-duration:' + b.r + 's;background:radial-gradient(closest-side,' + b.c + ' 0%,' + Sfondo.rgba('fondoScuro', 0) + ' 100%)"></div></div>';
       });
       if (conVeli) {
         basiVeli.forEach((b, i) => {
@@ -90,7 +92,8 @@
           veli += '<div class="velo" style="left:' + (b.x * sx + scarto - w / 2).toFixed(0) + 'px;top:' + (b.top * k).toFixed(0) +
             'px;width:' + w.toFixed(0) + 'px;height:' + (900 * k).toFixed(0) + 'px;animation-duration:' + b.r + 's;animation-delay:' + (-i * 1.7).toFixed(1) + 's;background:' +
             'repeating-linear-gradient(90deg,rgba(255,255,255,0.06) 0 2px,rgba(255,255,255,0) 2px 22px),' +
-            'linear-gradient(90deg,rgba(122,181,42,0) 0%,rgba(122,181,42,' + b.a + ') 35%,rgba(170,225,110,' + forte + ') 50%,rgba(122,181,42,' + b.a + ') 65%,rgba(122,181,42,0) 100%)"></div>';
+            'linear-gradient(90deg,' + Sfondo.rgba('accento', 0) + ' 0%,' + Sfondo.rgba('accento', b.a) + ' 35%,' + Sfondo.rgba('accentoChiaro', forte) +
+            ' 50%,' + Sfondo.rgba('accento', b.a) + ' 65%,' + Sfondo.rgba('accento', 0) + ' 100%)"></div>';
         });
       }
     }
@@ -99,11 +102,12 @@
       's;--periodo-negativo:' + (-P) + 'px">' + contenuto + '</div>';
 
     let html = '';
-    html += '<div class="strato" style="background:linear-gradient(0deg,rgba(122,181,42,0.1) 0%,rgba(122,181,42,0) 18%),linear-gradient(180deg,#07111f 0%,#0b1a30 60%,#10243f 100%)"></div>';
+    html += '<div class="strato" style="background:linear-gradient(0deg,' + Sfondo.rgba('accento', 0.1) + ' 0%,' + Sfondo.rgba('accento', 0) + ' 18%),' +
+      'linear-gradient(180deg,' + C.fondoScuro + ' 0%,' + Sfondo.tono('fondo', -2) + ' 60%,' + Sfondo.tono('fondo', 2) + ' 100%)"></div>';
     html += nastro(140, macchie);
     html += nastro(90, veli);
     html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1200 * k) + 'px ' + (650 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
-      'px,rgba(7,17,31,0.9) 0%,rgba(7,17,31,0) 70%)"></div>';
+      'px,' + Sfondo.rgba(Sfondo.velo(-6), 0.9) + ' 0%,' + Sfondo.rgba(Sfondo.velo(-6), 0) + ' 70%)"></div>';
 
     document.getElementById('scena').innerHTML = html;
     Sfondo.posizionaLogo(document.getElementById('logo'), s);
