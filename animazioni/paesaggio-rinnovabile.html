@@ -26,7 +26,7 @@
   top: 0;
   width: 8px;
   height: 100%;
-  background: linear-gradient(90deg, #a9c6e2, #6f93b8);
+  background: linear-gradient(90deg, var(--torre-chiara), var(--torre-scura));
   clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
 }
 .rotore { position: absolute; left: 0; top: 0; width: 0; height: 0; animation: gira 7s linear infinite; }
@@ -37,25 +37,25 @@
   bottom: 0;
   width: 10px;
   transform-origin: 50% 100%;
-  background: linear-gradient(90deg, #d5e4f2, #9dbad6);
+  background: linear-gradient(90deg, var(--pala-chiara), var(--pala-scura));
   clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
 }
-.mozzo { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: #dbe8f5; }
+.mozzo { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: var(--mozzo); }
 .pannello {
   position: absolute;
   width: 52px;
   height: 20px;
   box-sizing: border-box;
   transform: skewX(-35deg);
-  background: repeating-linear-gradient(90deg, transparent 0 12px, rgba(8,22,40,0.55) 12px 13px), linear-gradient(180deg, #4f90c8 0%, #2a5f93 50%, #173a63 100%);
-  border-top: 2px solid rgba(190,225,255,0.65);
+  background: repeating-linear-gradient(90deg, transparent 0 12px, var(--pannello-righe) 12px 13px), linear-gradient(180deg, var(--pannello-alto) 0%, var(--pannello-centro) 50%, var(--pannello-basso) 100%);
+  border-top: 2px solid var(--pannello-bordo);
   overflow: hidden;
 }
 .riflesso {
   position: absolute;
   inset: 0;
   opacity: 0;
-  background: linear-gradient(100deg, rgba(255,255,255,0) 20%, rgba(214,245,160,0.85) 50%, rgba(255,255,255,0) 80%);
+  background: linear-gradient(100deg, rgba(255,255,255,0) 20%, var(--riflesso) 50%, rgba(255,255,255,0) 80%);
   animation: riflesso 10s linear infinite;
 }
 @keyframes riflesso { 0% { opacity: 0; } 6% { opacity: 0.9; } 14% { opacity: 0; } 100% { opacity: 0; } }
@@ -70,6 +70,23 @@
   'use strict';
   // Parametri: ?velocita=1
   const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+
+  // Colori dalla tavolozza (sfondo.js): torri, pale e pannelli sono sfumature chiare del secondario.
+  const C = Sfondo.colori();
+  const variabili = {
+    '--torre-chiara': Sfondo.tono('secondario', 44, -16),
+    '--torre-scura': Sfondo.tono('secondario', 24, -31),
+    '--pala-chiara': Sfondo.tono('secondario', 55, -12),
+    '--pala-scura': Sfondo.tono('secondario', 39, -24),
+    '--mozzo': Sfondo.tono('secondario', 57, -9),
+    '--pannello-righe': Sfondo.rgba(Sfondo.tono('fondo', -4, 12), 0.55),
+    '--pannello-alto': Sfondo.tono('secondario', 21, -13),
+    '--pannello-centro': Sfondo.tono('secondario', 3, -10),
+    '--pannello-basso': Sfondo.tono('fondo', 11, 6),
+    '--pannello-bordo': Sfondo.rgba(Sfondo.tono('secondario', 54, 35), 0.65),
+    '--riflesso': Sfondo.rgba(Sfondo.tono('accento', 36, 19), 0.85)
+  };
+  Object.entries(variabili).forEach(([nome, valore]) => document.documentElement.style.setProperty(nome, valore));
   const GIRO = Math.PI * 2;
 
   const basiTurbine = [
@@ -138,13 +155,14 @@
 
     let html = '';
     html += '<div class="strato" style="background:' +
-      'radial-gradient(ellipse ' + (2600 * k) + 'px ' + (520 * k) + 'px at 55% 80%,rgba(122,181,42,0.26) 0%,rgba(122,181,42,0) 70%),' +
-      'radial-gradient(ellipse ' + (1800 * k) + 'px ' + (700 * k) + 'px at 85% 10%,rgba(30,91,142,0.35) 0%,rgba(30,91,142,0) 70%),' +
-      'linear-gradient(180deg,#08142a 0%,#0f2747 42%,#1b4a78 72%,#24608f 100%)"></div>';
-    html += nastro(360, turbine + svg('<path d="' + area(lontano) + '" fill="#173a63"/>'));
-    html += nastro(220, svg('<path d="' + area(medio) + '" fill="#102a4c"/>') + pannelli);
-    html += nastro(130, svg('<path d="' + area(vicino) + '" fill="#0a172b"/>' +
-      '<path d="' + linea(vicino) + '" fill="none" stroke="#7AB52A" stroke-width="2" opacity="0.7"/>'));
+      'radial-gradient(ellipse ' + (2600 * k) + 'px ' + (520 * k) + 'px at 55% 80%,' + Sfondo.rgba('accento', 0.26) + ' 0%,' + Sfondo.rgba('accento', 0) + ' 70%),' +
+      'radial-gradient(ellipse ' + (1800 * k) + 'px ' + (700 * k) + 'px at 85% 10%,' + Sfondo.rgba('secondario', 0.35) + ' 0%,' + Sfondo.rgba('secondario', 0) + ' 70%),' +
+      'linear-gradient(180deg,' + Sfondo.tono('fondo', -4, 12) + ' 0%,' + Sfondo.tono('fondo', 4, 9) + ' 42%,' +
+      Sfondo.tono('secondario', -5, -2) + ' 72%,' + Sfondo.tono('secondario', 1, -5) + ' 100%)"></div>';
+    html += nastro(360, turbine + svg('<path d="' + area(lontano) + '" fill="' + Sfondo.tono('fondo', 11, 6) + '"/>'));
+    html += nastro(220, svg('<path d="' + area(medio) + '" fill="' + Sfondo.tono('fondo', 5, 9) + '"/>') + pannelli);
+    html += nastro(130, svg('<path d="' + area(vicino) + '" fill="' + Sfondo.tono('fondo', -3, 6) + '"/>' +
+      '<path d="' + linea(vicino) + '" fill="none" stroke="' + C.accento + '" stroke-width="2" opacity="0.7"/>'));
 
     document.getElementById('scena').innerHTML = html;
     Sfondo.posizionaLogo(document.getElementById('logo'), s, 150);
