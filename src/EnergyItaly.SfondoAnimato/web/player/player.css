@@ -38,3 +38,13 @@ html, body {
   height: 100%;
   object-fit: cover;
 }
+
+/* Immagini e video con riempimento "adatta": interi, bande nere ai lati (spec personalizzazione 4.6). */
+.elemento.adatta {
+  background: #000;
+}
+
+.elemento.adatta img,
+.elemento.adatta video {
+  object-fit: contain;
+}

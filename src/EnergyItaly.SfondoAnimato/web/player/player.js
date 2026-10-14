@@ -58,6 +58,7 @@
     } else if (dati.tipoVoce === 'immagine') {
       nodo = document.createElement('div');
       nodo.className = 'elemento';
+      if (dati.riempimento === 'adatta') nodo.classList.add('adatta');
       const img = document.createElement('img');
       img.alt = '';
       pronto = new Promise((ok, ko) => {
@@ -69,6 +70,7 @@
     } else {
       nodo = document.createElement('div');
       nodo.className = 'elemento';
+      if (dati.riempimento === 'adatta') nodo.classList.add('adatta');
       const video = document.createElement('video');
       video.muted = true;
       video.defaultMuted = true;
