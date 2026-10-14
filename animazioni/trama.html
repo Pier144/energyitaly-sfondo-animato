@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trama</title>
+<link rel="stylesheet" href="comune/base.css">
+<style>
+.luce {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: deriva var(--durata) ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes deriva {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(var(--dx), var(--dy)); }
+}
+.tessera {
+  position: absolute;
+  pointer-events: none;
+}
+.tessera svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: scatta var(--durata) ease-in-out infinite;
+}
+/* Quattro quarti di giro per ciclo, con una pausa dopo ognuno: il ciclo si chiude a 360 gradi, quindi senza stacchi. */
+@keyframes scatta {
+  0%, 19% { transform: rotate(0deg); }
+  25%, 44% { transform: rotate(90deg); }
+  50%, 69% { transform: rotate(180deg); }
+  75%, 94% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="marchio" viewBox="0 0 205.47 205.47">
+    <path d="m102.74,0C46.09,0,0,46.09,0,102.74s46.09,102.74,102.74,102.74,102.74-46.09,102.74-102.74S159.39,0,102.74,0Zm0,201.47c-54.44,0-98.74-44.29-98.74-98.74S48.29,4,102.74,4s98.74,44.29,98.74,98.74-44.29,98.74-98.74,98.74Z"/>
+    <path d="m42.85,93.57c-5.05,0-9.15,4.1-9.15,9.15s4.1,9.15,9.15,9.15,9.15-4.1,9.15-9.15-4.1-9.15-9.15-9.15Z"/>
+    <path d="m108.87,65.15c11.9,0,22.5,5.49,29.42,14.06l7.75-7.75c-8.93-10.51-22.26-17.2-37.17-17.2s-28.33,6.72-37.25,17.29l7.76,7.76c6.92-8.62,17.55-14.15,29.5-14.15Z"/>
+    <path d="m71.13,102.74c0-6.36,1.59-12.35,4.39-17.6l-7.99-7.99c-4.64,7.43-7.34,16.19-7.34,25.59s2.59,17.85,7.08,25.2l8.03-8.03c-2.66-5.15-4.17-10.98-4.17-17.17Z"/>
+    <path d="m108.87,140.33c-12.11,0-22.88-5.69-29.78-14.51l-7.77,7.77c8.93,10.77,22.44,17.64,37.55,17.64s28.54-6.83,37.47-17.54l-7.77-7.77c-6.91,8.77-17.64,14.42-29.7,14.42Z"/>
+    <rect x="97.39" y="97.26" width="38.74" height="10.57"/>
+  </symbol>
+</svg>
+<div id="scena"></div>
+<img id="logo" src="img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+<script src="comune/sfondo.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Parametri: ?velocita=1&passo=132 (distanza tra i marchi su un monitor alto 1080 px)
+  const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+  const passoBase = Math.max(60, Sfondo.parametro('passo', 132));
+
+  Sfondo.avvia((s) => {
+    const W = s.larghezza;
+    const H = s.altezza;
+    const k = H / 1080;
+    const m = s.monitorLogo;
+    const caso = Sfondo.casuale(20261014);
+
+    let html = '';
+    html += '<div class="strato" style="background:linear-gradient(135deg,#0a1729 0%,#0f2240 60%,#132c4d 100%)"></div>';
+
+    // Macchie di luce che vagano lente dietro le tessere.
+    const luci = [
+      { x: 0.25, y: 0.3, r: 900, c: 'rgba(122,181,42,0.22)', dx: 0.35, dy: 0.25, t: 47 },
+      { x: 0.75, y: 0.7, r: 1100, c: 'rgba(30,91,142,0.55)', dx: -0.4, dy: -0.3, t: 61 },
+      { x: 0.6, y: 0.2, r: 700, c: 'rgba(178,224,104,0.14)', dx: -0.3, dy: 0.45, t: 39 }
+    ];
+    luci.forEach((l) => {
+      const r = l.r * k;
+      html += '<div class="luce" style="left:' + (l.x * W - r).toFixed(0) + 'px;top:' + (l.y * H - r).toFixed(0) +
+        'px;width:' + (2 * r).toFixed(0) + 'px;height:' + (2 * r).toFixed(0) + 'px;--dx:' + (l.dx * W).toFixed(0) + 'px;--dy:' + (l.dy * H).toFixed(0) +
+        'px;--durata:' + Math.round(l.t / velocita) + 's;background:radial-gradient(closest-side,' + l.c + ' 0%,rgba(10,23,41,0) 100%)"></div>';
+    });
+
+    // Griglia di marchi: ognuno parte da un orientamento a caso e fa quarti di giro con il suo ritmo.
+    const passo = passoBase * k;
+    const lato = passo * 0.74;
+    const colonne = Math.ceil(W / passo) + 1;
+    const righe = Math.ceil(H / passo) + 1;
+    const scartoX = (W - (colonne - 1) * passo) / 2;
+    const scartoY = (H - (righe - 1) * passo) / 2;
+    for (let r = 0; r < righe; r++) {
+      for (let c = 0; c < colonne; c++) {
+        const x = scartoX + c * passo;
+        const y = scartoY + r * passo;
+        const scelta = caso();
+        const colore = scelta < 0.04 ? 'rgba(178,224,104,0.85)' : scelta < 0.14 ? 'rgba(122,181,42,0.5)' : 'rgba(255,255,255,0.09)';
+        const quarto = Math.floor(caso() * 4) * 90;
+        const durata = (18 + caso() * 22) / velocita;
+        const ritardo = -caso() * durata;
+        html += '<div class="tessera" style="left:' + (x - lato / 2).toFixed(1) + 'px;top:' + (y - lato / 2).toFixed(1) + 'px;width:' + lato.toFixed(1) +
+          'px;height:' + lato.toFixed(1) + 'px;transform:rotate(' + quarto + 'deg);color:' + colore + '">' +
+          '<svg style="--durata:' + durata.toFixed(1) + 's;animation-delay:' + ritardo.toFixed(1) + 's" fill="currentColor"><use href="#marchio"></use></svg></div>';
+      }
+    }
+
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1300 * k) + 'px ' + (700 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
+      'px,rgba(10,23,41,0.96) 0%,rgba(10,23,41,0.8) 35%,rgba(10,23,41,0) 72%)"></div>';
+    document.getElementById('scena').innerHTML = html;
+    Sfondo.posizionaLogo(document.getElementById('logo'), s);
+  });
+})();
+</script>
+</body>
+</html>

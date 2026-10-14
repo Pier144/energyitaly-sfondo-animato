@@ -4,7 +4,7 @@
   "rotazioneAttiva": true,
   "fineVideo": true,
   "ordine": "sequenziale",
-  "playlist": ["onda-di-luce", "onde-di-energia", "paesaggio-rinnovabile", "circuito", "aurora"],
+  "playlist": ["onda-di-luce", "onde-di-energia", "paesaggio-rinnovabile", "circuito", "aurora", "segnale", "trama", "orizzonte-solare"],
   "dissolvenzaSecondi": 2,
   "modoMonitor": "estendi",
   "pausaABatteria": true,

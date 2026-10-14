@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orizzonte solare</title>
+<link rel="stylesheet" href="comune/base.css">
+<style>
+.monitor {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+.monitor div { position: absolute; }
+.stella {
+  border-radius: 50%;
+  background: #fff;
+  animation: brilla var(--durata) ease-in-out infinite alternate;
+}
+@keyframes brilla {
+  0% { opacity: 0.15; }
+  100% { opacity: 0.85; }
+}
+.raggi {
+  border-radius: 50%;
+  animation: ruota var(--giro) linear infinite;
+  will-change: transform;
+}
+@keyframes ruota { to { transform: rotate(360deg); } }
+.bagliore { border-radius: 50%; animation: pulsa var(--respiro) ease-in-out infinite alternate; }
+@keyframes pulsa {
+  0% { opacity: 0.55; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1.06); }
+}
+.linea {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  transform-origin: 50% 0;
+  will-change: transform, opacity;
+}
+.riflesso {
+  top: 0;
+  height: 100%;
+  animation: passa var(--passaggio) ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes passa {
+  0% { transform: translateX(var(--da)) skewX(-30deg); }
+  60%, 100% { transform: translateX(var(--a)) skewX(-30deg); }
+}
+</style>
+</head>
+<body>
+<div id="scena"></div>
+<img id="logo" src="img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+<script src="comune/sfondo.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Parametri: ?velocita=1&stelle=60
+  const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+  const numeroStelle = Math.max(0, Math.min(200, Math.round(Sfondo.parametro('stelle', 60))));
+
+  // Profondità (in unità della distanza dello spettatore) della riga più vicina e di quella più lontana.
+  const VICINA = 1;
+  const LONTANA = 26;
+  const RIGHE = LONTANA - VICINA;
+  const CAMPIONI = 90;
+
+  // Le righe orizzontali del campo avanzano a velocità costante in profondità: sullo schermo la loro altezza segue 1/z,
+  // quindi i fotogrammi chiave vengono calcolati qui, uno per monitor (cambiano con l'altezza del pavimento).
+  function fotogrammiRighe(nome, pavimento) {
+    let testo = '@keyframes ' + nome + '{';
+    for (let i = 0; i <= CAMPIONI; i++) {
+      const t = i / CAMPIONI;
+      const z = LONTANA - t * RIGHE;
+      const y = pavimento * VICINA / z;
+      const vicinanza = (LONTANA - z) / RIGHE;
+      const opacita = Math.min(1, vicinanza * 1.6) * (t > 0.97 ? (1 - t) / 0.03 : 1);
+      testo += (t * 100).toFixed(2) + '%{transform:translateY(' + y.toFixed(1) + 'px) scaleY(' + (0.5 + vicinanza * 1.2).toFixed(2) +
+        ');opacity:' + opacita.toFixed(3) + '}';
+    }
+    return testo + '}';
+  }
+
+  function costruisciMonitor(mon, indice, caso, k, fotogrammi) {
+    const w = mon.w;
+    const h = mon.h;
+    const orizzonte = Math.round(h * 0.58);
+    const pavimento = h - orizzonte;
+    const soleX = w * 0.64;
+    const soleR = h * 0.2;
+    let html = '<div class="monitor" style="left:' + mon.x + 'px;top:' + mon.y + 'px;width:' + w + 'px;height:' + h + 'px">';
+
+    // Cielo.
+    html += '<div style="inset:0;background:linear-gradient(180deg,#050c18 0%,#0a1930 38%,#173a5c ' + Math.round(orizzonte / h * 100) + '%,#0a1930 100%)"></div>';
+    for (let i = 0; i < numeroStelle; i++) {
+      const d = (1 + caso() * 1.8) * k;
+      html += '<div class="stella" style="left:' + (caso() * w).toFixed(0) + 'px;top:' + (caso() * orizzonte * 0.8).toFixed(0) + 'px;width:' + d.toFixed(1) +
+        'px;height:' + d.toFixed(1) + 'px;--durata:' + (3 + caso() * 5).toFixed(1) + 's;animation-delay:' + (-caso() * 8).toFixed(1) + 's"></div>';
+    }
+
+    // Sole: raggi lenti, bagliore che respira, disco a fasce che affonda nell'orizzonte.
+    const raggi = soleR * 5;
+    html += '<div class="raggi" style="left:' + (soleX - raggi / 2).toFixed(0) + 'px;top:' + (orizzonte - raggi / 2).toFixed(0) + 'px;width:' + raggi.toFixed(0) +
+      'px;height:' + raggi.toFixed(0) + 'px;--giro:' + Math.round(240 / velocita) + 's;opacity:0.5;' +
+      'background:repeating-conic-gradient(rgba(178,224,104,0.16) 0deg 3deg,rgba(178,224,104,0) 3deg 15deg);' +
+      '-webkit-mask-image:radial-gradient(closest-side,#000 15%,transparent 100%);mask-image:radial-gradient(closest-side,#000 15%,transparent 100%)"></div>';
+    const bagliore = soleR * 3.6;
+    html += '<div class="bagliore" style="left:' + (soleX - bagliore / 2).toFixed(0) + 'px;top:' + (orizzonte - bagliore / 2).toFixed(0) + 'px;width:' + bagliore.toFixed(0) +
+      'px;height:' + bagliore.toFixed(0) + 'px;--respiro:' + (7 / velocita).toFixed(1) + 's;' +
+      'background:radial-gradient(closest-side,rgba(178,224,104,0.45) 0%,rgba(122,181,42,0.18) 40%,rgba(122,181,42,0) 100%)"></div>';
+    // Le fasce stanno nella metà alta del disco, l'unica sopra l'orizzonte.
+    const fasce = 'linear-gradient(180deg,#000 0% 27%,transparent 27% 29%,#000 29% 35%,transparent 35% 38%,#000 38% 42%,transparent 42% 46%,#000 46% 48.5%,transparent 48.5%)';
+    html += '<div style="left:' + (soleX - soleR).toFixed(0) + 'px;top:' + (orizzonte - soleR).toFixed(0) + 'px;width:' + (2 * soleR).toFixed(0) + 'px;height:' + (2 * soleR).toFixed(0) +
+      'px;border-radius:50%;background:linear-gradient(180deg,#eef9d6 0%,#c8ea8e 30%,#8fc43a 70%,#5f9420 100%);' +
+      '-webkit-mask-image:' + fasce + ';mask-image:' + fasce + '"></div>';
+
+    // Pavimento: il campo fotovoltaico.
+    html += '<div style="left:0;top:' + orizzonte + 'px;width:' + w + 'px;height:' + pavimento + 'px;overflow:hidden;' +
+      'background:linear-gradient(180deg,#0d2440 0%,#0a1b31 40%,#071324 100%)">';
+    // Riflesso del sole sul campo.
+    html += '<div style="left:' + (soleX - soleR * 1.6).toFixed(0) + 'px;top:0;width:' + (soleR * 3.2).toFixed(0) + 'px;height:100%;' +
+      'background:radial-gradient(ellipse 50% 100% at 50% 0%,rgba(178,224,104,0.28) 0%,rgba(122,181,42,0) 100%)"></div>';
+    // Linee di fuga: statiche, convergono nel punto sotto il sole.
+    let fuga = '<svg width="' + w + '" height="' + pavimento + '" style="position:absolute;left:0;top:0">';
+    // Sul bordo basso le linee distano passoFuga; più in alto si stringono, quindi servono anche quelle che escono
+    // dallo schermo in basso: rientrano dai lati fino a dove la foschia copre il pavimento (circa un quinto).
+    const passoFuga = 170 * k;
+    const metaRaggi = Math.ceil(Math.max(soleX, w - soleX) / (passoFuga * 0.2));
+    for (let i = -metaRaggi; i <= metaRaggi; i++) {
+      fuga += '<line x1="' + soleX.toFixed(1) + '" y1="0" x2="' + (soleX + i * passoFuga).toFixed(1) + '" y2="' + pavimento +
+        '" stroke="rgba(74,144,200,0.32)" stroke-width="' + (1.2 * k).toFixed(2) + '"/>';
+    }
+    fuga += '</svg>';
+    html += fuga;
+    // Righe orizzontali che scorrono verso chi guarda.
+    const nome = 'righe-' + indice;
+    fotogrammi.push(fotogrammiRighe(nome, pavimento));
+    const durata = 30 / velocita;
+    for (let i = 0; i < RIGHE; i++) {
+      html += '<div class="linea" style="background:rgba(74,144,200,0.45);animation:' + nome + ' ' + durata.toFixed(2) + 's linear infinite;animation-delay:' +
+        (-i * durata / RIGHE).toFixed(2) + 's"></div>';
+    }
+    // Un lampo di luce che attraversa i pannelli ogni tanto.
+    const larghezzaRiflesso = 260 * k;
+    html += '<div class="riflesso" style="left:0;width:' + larghezzaRiflesso.toFixed(0) + 'px;--da:' + (-larghezzaRiflesso * 2).toFixed(0) + 'px;--a:' + (w + larghezzaRiflesso).toFixed(0) +
+      'px;--passaggio:' + (16 / velocita).toFixed(1) + 's;animation-delay:' + (-indice * 5) + 's;' +
+      'background:linear-gradient(90deg,rgba(178,224,104,0) 0%,rgba(178,224,104,0.1) 50%,rgba(178,224,104,0) 100%)"></div>';
+    // Foschia sull'orizzonte: nasconde l'addensarsi delle righe lontane.
+    html += '<div style="left:0;top:0;width:100%;height:' + (pavimento * 0.22).toFixed(0) + 'px;background:linear-gradient(180deg,#173a5c 0%,rgba(23,58,92,0.6) 35%,rgba(23,58,92,0) 100%)"></div>';
+    html += '</div>';
+    // Linea dell'orizzonte.
+    html += '<div style="left:0;top:' + (orizzonte - 1) + 'px;width:100%;height:2px;background:linear-gradient(90deg,rgba(178,224,104,0) 0%,rgba(178,224,104,0.55) ' +
+      Math.round(soleX / w * 100) + '%,rgba(178,224,104,0) 100%)"></div>';
+    return html + '</div>';
+  }
+
+  Sfondo.avvia((s) => {
+    const k = s.altezza / 1080;
+    const m = s.monitorLogo;
+    const caso = Sfondo.casuale(4071976);
+    const fotogrammi = [];
+
+    let html = '';
+    s.monitor.forEach((mon, i) => {
+      html += costruisciMonitor(mon, i, caso, mon.h / 1080, fotogrammi);
+    });
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1200 * k) + 'px ' + (650 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
+      'px,rgba(7,19,36,0.92) 0%,rgba(7,19,36,0) 70%)"></div>';
+
+    let stile = document.getElementById('fotogrammi');
+    if (!stile) {
+      stile = document.createElement('style');
+      stile.id = 'fotogrammi';
+      document.head.appendChild(stile);
+    }
+    stile.textContent = fotogrammi.join('\n');
+    document.getElementById('scena').innerHTML = html;
+    Sfondo.posizionaLogo(document.getElementById('logo'), s);
+  });
+})();
+</script>
+</body>
+</html>

@@ -5,6 +5,9 @@
     { "id": "onde-di-energia", "titolo": "Onde di energia", "file": "onde-di-energia.html", "parametri": { "durata": 80, "linee": 28 } },
     { "id": "paesaggio-rinnovabile", "titolo": "Paesaggio rinnovabile", "file": "paesaggio-rinnovabile.html", "parametri": { "velocita": 1 } },
     { "id": "circuito", "titolo": "Circuito", "file": "circuito.html", "parametri": { "tracce": 24, "velocita": 1 } },
-    { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "parametri": { "velocita": 1, "veli": 1 } }
+    { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "parametri": { "velocita": 1, "veli": 1 } },
+    { "id": "segnale", "titolo": "Segnale", "file": "segnale.html", "parametri": { "velocita": 1, "onde": 4 } },
+    { "id": "trama", "titolo": "Trama", "file": "trama.html", "parametri": { "velocita": 1, "passo": 132 } },
+    { "id": "orizzonte-solare", "titolo": "Orizzonte solare", "file": "orizzonte-solare.html", "parametri": { "velocita": 1, "stelle": 60 } }
   ]
 }

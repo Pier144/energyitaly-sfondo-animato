@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segnale</title>
+<link rel="stylesheet" href="comune/base.css">
+<style>
+.emblema {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+.emblema * {
+  transform-box: view-box;
+  transform-origin: 102.74px 102.74px;
+}
+.alone {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: alone var(--ciclo) ease-in-out infinite;
+}
+@keyframes alone {
+  0%, 30% { opacity: 0.35; transform: scale(0.9); }
+  52% { opacity: 1; transform: scale(1.06); }
+  80%, 100% { opacity: 0.35; transform: scale(0.9); }
+}
+.cerchio-onda {
+  fill: none;
+  stroke: rgba(178,224,104,0.55);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  animation: onda var(--ciclo) cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+}
+@keyframes onda {
+  0% { opacity: 0; transform: scale(1); }
+  6% { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(2.55); }
+}
+.orbita { fill: none; vector-effect: non-scaling-stroke; }
+.gira { animation: gira var(--giro) linear infinite; }
+.gira-contro { animation: gira var(--giro) linear infinite reverse; }
+@keyframes gira { to { transform: rotate(360deg); } }
+.base { fill: rgba(255,255,255,0.1); }
+.carica {
+  fill: #b2e068;
+  opacity: 0;
+  animation: var(--nome) var(--ciclo) ease-out infinite;
+}
+@keyframes carica-1 { 0%, 4% { opacity: 0; } 10%, 66% { opacity: 0.9; } 82%, 100% { opacity: 0; } }
+@keyframes carica-2 { 0%, 12% { opacity: 0; } 18%, 66% { opacity: 0.9; } 82%, 100% { opacity: 0; } }
+@keyframes carica-3 { 0%, 20% { opacity: 0; } 26%, 66% { opacity: 0.9; } 82%, 100% { opacity: 0; } }
+@keyframes carica-4 { 0%, 28% { opacity: 0; } 34%, 66% { opacity: 0.9; } 82%, 100% { opacity: 0; } }
+@keyframes carica-5 { 0%, 36% { opacity: 0; } 42%, 66% { opacity: 0.9; } 82%, 100% { opacity: 0; } }
+@keyframes carica-6 { 0%, 44% { opacity: 0; } 50% { opacity: 1; } 56%, 66% { opacity: 0.6; } 82%, 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="scena"></div>
+<img id="logo" src="img/brand/LogoEnergyItalyWhite.svg" alt="Energy Italy">
+<script src="comune/sfondo.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Parametri: ?velocita=1&onde=4
+  const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+  const onde = Math.max(0, Math.min(8, Math.round(Sfondo.parametro('onde', 4))));
+  const ciclo = 9 / velocita;
+
+  // Le parti del marchio, nell'ordine in cui si accendono: punto, arco alto, arco sinistro, arco basso, barra, anello.
+  const PARTI = [
+    '<path d="m42.85,93.57c-5.05,0-9.15,4.1-9.15,9.15s4.1,9.15,9.15,9.15,9.15-4.1,9.15-9.15-4.1-9.15-9.15-9.15Z"/>',
+    '<path d="m108.87,65.15c11.9,0,22.5,5.49,29.42,14.06l7.75-7.75c-8.93-10.51-22.26-17.2-37.17-17.2s-28.33,6.72-37.25,17.29l7.76,7.76c6.92-8.62,17.55-14.15,29.5-14.15Z"/>',
+    '<path d="m71.13,102.74c0-6.36,1.59-12.35,4.39-17.6l-7.99-7.99c-4.64,7.43-7.34,16.19-7.34,25.59s2.59,17.85,7.08,25.2l8.03-8.03c-2.66-5.15-4.17-10.98-4.17-17.17Z"/>',
+    '<path d="m108.87,140.33c-12.11,0-22.88-5.69-29.78-14.51l-7.77,7.77c8.93,10.77,22.44,17.64,37.55,17.64s28.54-6.83,37.47-17.54l-7.77-7.77c-6.91,8.77-17.64,14.42-29.7,14.42Z"/>',
+    '<rect x="97.39" y="97.26" width="38.74" height="10.57"/>',
+    '<path d="m102.74,0C46.09,0,0,46.09,0,102.74s46.09,102.74,102.74,102.74,102.74-46.09,102.74-102.74S159.39,0,102.74,0Zm0,201.47c-54.44,0-98.74-44.29-98.74-98.74S48.29,4,102.74,4s98.74,44.29,98.74,98.74-44.29,98.74-98.74,98.74Z"/>'
+  ];
+
+  // Il disegno occupa un quadrato di MARGINE unità intorno al marchio (diametro 205.47): c'è spazio per orbite e onde.
+  const MARGINE = 260;
+
+  function emblema() {
+    const vb = (102.74 - MARGINE) + ' ' + (102.74 - MARGINE) + ' ' + (2 * MARGINE) + ' ' + (2 * MARGINE);
+    let svg = '<svg viewBox="' + vb + '" xmlns="http://www.w3.org/2000/svg">';
+    for (let i = 0; i < onde; i++) {
+      svg += '<circle class="cerchio-onda" cx="102.74" cy="102.74" r="102.74" style="animation-delay:' +
+        (-(i * ciclo) / onde + ciclo * 0.5).toFixed(2) + 's"></circle>';
+    }
+    svg += '<g class="gira" style="--giro:' + Math.round(140 / velocita) + 's">' +
+      '<circle class="orbita" cx="102.74" cy="102.74" r="152" stroke="rgba(255,255,255,0.16)" stroke-width="1" stroke-dasharray="1 9"></circle>' +
+      '<circle cx="254.74" cy="102.74" r="4.5" fill="#b2e068"></circle></g>';
+    svg += '<g class="gira-contro" style="--giro:' + Math.round(220 / velocita) + 's">' +
+      '<circle class="orbita" cx="102.74" cy="102.74" r="205" stroke="rgba(74,144,200,0.35)" stroke-width="1" stroke-dasharray="90 26 6 26"></circle>' +
+      '<circle cx="102.74" cy="-102.26" r="3" fill="rgba(255,255,255,0.7)"></circle></g>';
+    svg += '<g class="base">' + PARTI.join('') + '</g>';
+    PARTI.forEach((parte, i) => {
+      svg += '<g class="carica" style="--nome:carica-' + (i + 1) + '">' + parte + '</g>';
+    });
+    return svg + '</svg>';
+  }
+
+  Sfondo.avvia((s) => {
+    const k = s.altezza / 1080;
+    const m = s.monitorLogo;
+    const scena = document.getElementById('scena');
+    scena.style.setProperty('--ciclo', ciclo.toFixed(2) + 's');
+
+    let html = '';
+    html += '<div class="strato" style="background:linear-gradient(160deg,#081324 0%,#0d1f38 55%,#12304f 100%)"></div>';
+    html += '<div class="strato" style="opacity:0.5;background-image:radial-gradient(rgba(255,255,255,0.09) 1.2px,transparent 1.6px);background-size:' +
+      (28 * k).toFixed(1) + 'px ' + (28 * k).toFixed(1) + 'px"></div>';
+
+    const disegno = emblema();
+    s.monitor.forEach((mon) => {
+      // Il marchio grande sta nella parte destra di ogni monitor, a metà altezza.
+      const d = mon.h * 0.5;
+      const cx = mon.x + mon.w * 0.68;
+      const cy = mon.y + mon.h * 0.5;
+      const lato = d * (2 * MARGINE) / 205.47;
+      const alone = d * 1.9;
+      html += '<div class="alone" style="left:' + (cx - alone / 2).toFixed(0) + 'px;top:' + (cy - alone / 2).toFixed(0) +
+        'px;width:' + alone.toFixed(0) + 'px;height:' + alone.toFixed(0) +
+        'px;background:radial-gradient(closest-side,rgba(122,181,42,0.32) 0%,rgba(122,181,42,0.1) 45%,rgba(122,181,42,0) 100%)"></div>';
+      html += '<div class="emblema" style="left:' + (cx - lato / 2).toFixed(0) + 'px;top:' + (cy - lato / 2).toFixed(0) +
+        'px;width:' + lato.toFixed(0) + 'px;height:' + lato.toFixed(0) + 'px">' + disegno.replace('<svg ', '<svg width="100%" height="100%" ') + '</div>';
+    });
+
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1200 * k) + 'px ' + (650 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
+      'px,rgba(8,19,36,0.92) 0%,rgba(8,19,36,0) 70%)"></div>';
+    scena.innerHTML = html;
+    Sfondo.posizionaLogo(document.getElementById('logo'), s);
+  });
+})();
+</script>
+</body>
+</html>
