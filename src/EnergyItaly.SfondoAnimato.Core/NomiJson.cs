@@ -46,4 +46,28 @@ public static class NomiJson
         "duplica" => ModoMonitor.Duplica,
         _ => null
     };
+
+    public static string Di(Riempimento r) => r == Riempimento.Adatta ? "adatta" : "riempi";
+
+    public static string Di(TipoOpzione t) => t switch
+    {
+        TipoOpzione.Numero => "numero",
+        TipoOpzione.Scelta => "scelta",
+        _ => "interruttore"
+    };
+
+    public static Riempimento? LeggiRiempimento(string? s) => s switch
+    {
+        "riempi" => Riempimento.Riempi,
+        "adatta" => Riempimento.Adatta,
+        _ => null
+    };
+
+    public static TipoOpzione? LeggiTipoOpzione(string? s) => s switch
+    {
+        "numero" => TipoOpzione.Numero,
+        "scelta" => TipoOpzione.Scelta,
+        "interruttore" => TipoOpzione.Interruttore,
+        _ => null
+    };
 }
