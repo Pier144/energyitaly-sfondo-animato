@@ -1,12 +1,41 @@
 {
-  "versione": 1,
+  "versione": 2,
+  "tavolozze": [
+    { "id": "energy-italy", "titolo": "Energy Italy", "fondo": "#0f1e35", "accento": "#7ab52a", "secondario": "#1e5b8e" },
+    { "id": "notte", "titolo": "Notte", "fondo": "#05070d", "accento": "#4a90c8", "secondario": "#2b3a55" },
+    { "id": "alba", "titolo": "Alba", "fondo": "#1d1530", "accento": "#f0a04c", "secondario": "#7a3b69" },
+    { "id": "mare", "titolo": "Mare", "fondo": "#062a33", "accento": "#2ec4b6", "secondario": "#1b6f8a" },
+    { "id": "bosco", "titolo": "Bosco", "fondo": "#0d1f14", "accento": "#9bd45a", "secondario": "#2f6b3f" }
+  ],
   "animazioni": [
-    { "id": "onda-di-luce", "titolo": "Onda di luce", "file": "onda-di-luce.html", "parametri": { "ampiezza": "lieve", "durata": 16 } },
-    { "id": "onde-di-energia", "titolo": "Onde di energia", "file": "onde-di-energia.html", "parametri": { "durata": 80, "linee": 28 } },
-    { "id": "paesaggio-rinnovabile", "titolo": "Paesaggio rinnovabile", "file": "paesaggio-rinnovabile.html", "parametri": { "velocita": 1 } },
-    { "id": "circuito", "titolo": "Circuito", "file": "circuito.html", "parametri": { "tracce": 24, "velocita": 1 } },
-    { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "parametri": { "velocita": 1, "veli": 1 } },
-    { "id": "segnale", "titolo": "Segnale", "file": "segnale.html", "parametri": { "velocita": 1, "onde": 2 } },
-    { "id": "trama", "titolo": "Trama", "file": "trama.html", "parametri": { "velocita": 1, "passo": 132 } }
+    { "id": "onda-di-luce", "titolo": "Onda di luce", "file": "onda-di-luce.html", "opzioni": [
+      { "id": "ampiezza", "titolo": "Ampiezza", "tipo": "scelta", "predefinito": "lieve",
+        "valori": [ { "valore": "lieve", "titolo": "Lieve" }, { "valore": "media", "titolo": "Media" }, { "valore": "forte", "titolo": "Forte" } ] },
+      { "id": "durata", "titolo": "Durata dell'onda", "tipo": "numero", "min": 8, "max": 30, "passo": 1, "predefinito": 16, "unita": "s" },
+      { "id": "intensita", "titolo": "Intensità", "tipo": "numero", "min": 0.4, "max": 1, "passo": 0.1, "predefinito": 1 }
+    ] },
+    { "id": "onde-di-energia", "titolo": "Onde di energia", "file": "onde-di-energia.html", "opzioni": [
+      { "id": "durata", "titolo": "Durata", "tipo": "numero", "min": 40, "max": 160, "passo": 10, "predefinito": 80, "unita": "s" },
+      { "id": "linee", "titolo": "Linee", "tipo": "numero", "min": 12, "max": 40, "passo": 2, "predefinito": 28 }
+    ] },
+    { "id": "paesaggio-rinnovabile", "titolo": "Paesaggio rinnovabile", "file": "paesaggio-rinnovabile.html", "opzioni": [
+      { "id": "velocita", "titolo": "Velocità", "tipo": "numero", "min": 0.5, "max": 2, "passo": 0.25, "predefinito": 1, "unita": "×" }
+    ] },
+    { "id": "circuito", "titolo": "Circuito", "file": "circuito.html", "opzioni": [
+      { "id": "tracce", "titolo": "Tracce", "tipo": "numero", "min": 12, "max": 40, "passo": 2, "predefinito": 24 },
+      { "id": "velocita", "titolo": "Velocità", "tipo": "numero", "min": 0.5, "max": 2, "passo": 0.25, "predefinito": 1, "unita": "×" }
+    ] },
+    { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "opzioni": [
+      { "id": "velocita", "titolo": "Velocità", "tipo": "numero", "min": 0.5, "max": 2, "passo": 0.25, "predefinito": 1, "unita": "×" },
+      { "id": "veli", "titolo": "Veli di luce", "tipo": "interruttore", "predefinito": true }
+    ] },
+    { "id": "segnale", "titolo": "Segnale", "file": "segnale.html", "opzioni": [
+      { "id": "velocita", "titolo": "Velocità", "tipo": "numero", "min": 0.5, "max": 2, "passo": 0.25, "predefinito": 1, "unita": "×" },
+      { "id": "onde", "titolo": "Anelli per impulso", "tipo": "numero", "min": 0, "max": 4, "passo": 1, "predefinito": 2 }
+    ] },
+    { "id": "trama", "titolo": "Trama", "file": "trama.html", "opzioni": [
+      { "id": "velocita", "titolo": "Velocità", "tipo": "numero", "min": 0.5, "max": 2, "passo": 0.25, "predefinito": 1, "unita": "×" },
+      { "id": "distanza", "titolo": "Distanza tra i marchi", "tipo": "numero", "min": 90, "max": 200, "passo": 10, "predefinito": 130 }
+    ] }
   ]
 }

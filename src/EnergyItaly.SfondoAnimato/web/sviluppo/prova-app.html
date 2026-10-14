@@ -5,36 +5,110 @@
 <title>Prova della finestra principale</title>
 <style>
 html, body { margin: 0; height: 100%; background: #000; }
-iframe { display: block; width: 100%; height: 100%; border: 0; }
+body { display: flex; flex-direction: column; }
+iframe { display: block; flex: 1; width: 100%; min-height: 0; border: 0; }
+#registro { flex: none; height: 110px; margin: 0; padding: 6px 10px; overflow: auto; background: #0c1b31; color: #a9bbcf; font: 11px Consolas, monospace; white-space: pre-wrap; }
 </style>
 </head>
 <body>
 <iframe id="app" src="../app/index.html" title="Finestra principale"></iframe>
+<pre id="registro" aria-label="Messaggi dalla finestra"></pre>
 <script>
 (async function () {
   'use strict';
-  // Simula il programma C#: stessa forma dei messaggi "stato" e "avviso" (Task 8).
-  // Parametro ?monitor=1|2|3 per provare disposizioni diverse.
+  // Simula il programma C#: stessa forma dei messaggi "stato" e "avviso" (Task 8 e spec personalizzazione 4.8).
+  // Parametri: ?monitor=1|2|3 per provare disposizioni diverse; ?registro=0 nasconde il registro dei messaggi.
   const app = document.getElementById('app');
+  const registro = document.getElementById('registro');
+  const query = new URLSearchParams(location.search);
+  if (query.get('registro') === '0') registro.hidden = true;
   const manifest = await (await fetch('/animazioni/manifest.json')).json();
+
+  // ---------- Personalizzazioni (regole essenziali di Personalizzazioni.cs) ----------
+  const tavolozze = manifest.tavolozze;
+  const personalizzazioni = {};
+  const perUrl = (v) => (typeof v === 'boolean' ? (v ? '1' : '0') : String(v));
+
+  function urlDi(v) {
+    if (v.tipoVoce !== 'animazione') return v.urlFile;
+    const p = personalizzazioni[v.id] || {};
+    const t = tavolozze.find((x) => x.id === p.tavolozza) || tavolozze[0];
+    const parti = p.tavolozza === 'personalizzata'
+      ? [['fondo', p.fondo.slice(1)], ['accento', p.accento.slice(1)]]
+      : [['fondo', t.fondo.slice(1)], ['accento', t.accento.slice(1)], ['secondario', t.secondario.slice(1)]];
+    v.opzioni.forEach((o) => parti.push([o.id, perUrl(p.opzioni && o.id in p.opzioni ? p.opzioni[o.id] : o.predefinito)]));
+    return v.urlFile + '?' + new URLSearchParams(parti);
+  }
+
+  function allinea(o, n) {
+    const x = o.min + Math.round((Math.min(o.max, Math.max(o.min, n)) - o.min) / o.passo) * o.passo;
+    return Math.round(Math.min(o.max, Math.max(o.min, x)) * 1e6) / 1e6;
+  }
+
+  function personalizza(id, mod) {
+    const v = voci.find((x) => x.id === id);
+    if (!v) return 'Questo sfondo non è disponibile';
+    const animazione = v.tipoVoce === 'animazione';
+    if (!animazione && (mod.tavolozza || mod.fondo || mod.accento || mod.opzioni)) return 'Colori e opzioni valgono solo per le animazioni Energy Italy';
+    if (mod.riempimento && v.tipoVoce !== 'immagine' && v.tipoVoce !== 'video') return 'Il riempimento vale solo per immagini e video';
+    const p = JSON.parse(JSON.stringify(personalizzazioni[id] || {}));
+    if (mod.tavolozza !== undefined) {
+      if (mod.tavolozza === 'personalizzata' && p.tavolozza !== 'personalizzata') {
+        const t = tavolozze.find((x) => x.id === p.tavolozza) || tavolozze[0];
+        p.fondo = t.fondo;
+        p.accento = t.accento;
+      }
+      if (mod.tavolozza !== 'personalizzata') { delete p.fondo; delete p.accento; }
+      p.tavolozza = mod.tavolozza === tavolozze[0].id ? undefined : mod.tavolozza;
+    }
+    if ((mod.fondo || mod.accento) && p.tavolozza !== 'personalizzata') return 'I colori si scelgono con la tavolozza Personalizzata';
+    if (mod.fondo) p.fondo = mod.fondo.toLowerCase();
+    if (mod.accento) p.accento = mod.accento.toLowerCase();
+    if (mod.opzioni) {
+      p.opzioni = Object.assign({}, p.opzioni);
+      for (const [chiave, valore] of Object.entries(mod.opzioni)) {
+        const o = v.opzioni.find((x) => x.id === chiave);
+        if (!o) return 'Opzione sconosciuta: ' + chiave;
+        p.opzioni[chiave] = o.tipo === 'numero' ? allinea(o, valore) : valore;
+        if (p.opzioni[chiave] === o.predefinito) delete p.opzioni[chiave];
+      }
+      if (!Object.keys(p.opzioni).length) delete p.opzioni;
+    }
+    if (mod.modoMonitor) p.modoMonitor = mod.modoMonitor === 'generale' ? undefined : mod.modoMonitor;
+    if (mod.riempimento) p.riempimento = mod.riempimento === 'riempi' ? undefined : mod.riempimento;
+    Object.keys(p).forEach((k) => { if (p[k] === undefined) delete p[k]; });
+    if (Object.keys(p).length) personalizzazioni[id] = p; else delete personalizzazioni[id];
+    return null;
+  }
+
+  function completa(v) {
+    const p = personalizzazioni[v.id] || null;
+    v.personalizzazione = p;
+    v.url = urlDi(v);
+    v.modoMonitor = (p && p.modoMonitor) || s.impostazioni.modoMonitor;
+    v.riempimento = (p && p.riempimento) || 'riempi';
+  }
+
+  // ---------- Voci ----------
   const voci = manifest.animazioni.map((a) => ({
     id: a.id, tipoVoce: 'animazione', titolo: a.titolo, aziendale: true, durataSecondi: null, disponibile: true,
-    url: '/animazioni/' + a.file + '?' + new URLSearchParams(Object.entries(a.parametri).map(([k, v]) => [k, String(v)]))
+    urlFile: '/animazioni/' + a.file, opzioni: a.opzioni || []
   }));
-  voci.push({ id: 'u-logo-aaaaaa', tipoVoce: 'immagine', titolo: 'Logo come immagine', aziendale: false, url: '/animazioni/img/brand/LogoEnergyItalyWhite.svg', durataSecondi: null, disponibile: true });
-  voci.push({ id: 'u-video-bbbbbb', tipoVoce: 'video', titolo: 'Timelapse ufficio', aziendale: false, url: '/non-esiste.mp4', durataSecondi: 160, disponibile: false });
+  voci.push({ id: 'u-logo-aaaaaa', tipoVoce: 'immagine', titolo: 'Logo come immagine', aziendale: false, urlFile: '/animazioni/img/brand/LogoEnergyItalyWhite.svg', opzioni: [], durataSecondi: null, disponibile: true });
+  voci.push({ id: 'u-video-bbbbbb', tipoVoce: 'video', titolo: 'Timelapse ufficio', aziendale: false, urlFile: '/non-esiste.mp4', opzioni: [], durataSecondi: 160, disponibile: false });
 
   const disposizioni = {
     1: [{ nome: 'DISPLAY1', x: 0, y: 0, w: 1920, h: 1080, principale: true }],
     2: [{ nome: 'DISPLAY1', x: 0, y: 7, w: 1920, h: 1080, principale: false }, { nome: 'DISPLAY2', x: 1920, y: 0, w: 1920, h: 1080, principale: true }],
     3: [{ nome: 'DISPLAY1', x: 0, y: 7, w: 1920, h: 1080, principale: false }, { nome: 'DISPLAY2', x: 1920, y: 0, w: 1920, h: 1080, principale: true }, { nome: 'DISPLAY3', x: 3840, y: 3, w: 1920, h: 1080, principale: false }]
   };
-  const monitor = disposizioni[new URLSearchParams(location.search).get('monitor') || '2'] || disposizioni[2];
+  const monitor = disposizioni[query.get('monitor') || '2'] || disposizioni[2];
   const finestra = { w: Math.max(...monitor.map((m) => m.x + m.w)), h: Math.max(...monitor.map((m) => m.y + m.h)) };
+  const AZIENDALI = { intervalloValore: 30, intervalloUnita: 'minuti', rotazioneAttiva: true, fineVideo: true, ordine: 'sequenziale', dissolvenzaSecondi: 2, modoMonitor: 'estendi', pausaABatteria: true, avvioConWindows: true, aggiornamentiAutomatici: true };
 
   const s = {
-    tipo: 'stato', voci, playlist: voci.filter((v) => v.aziendale).map((v) => v.id),
-    impostazioni: { intervalloValore: 30, intervalloUnita: 'minuti', rotazioneAttiva: true, fineVideo: true, ordine: 'sequenziale', dissolvenzaSecondi: 2, modoMonitor: 'estendi', pausaABatteria: true, avvioConWindows: true, aggiornamentiAutomatici: true },
+    tipo: 'stato', voci, tavolozze, playlist: voci.filter((v) => v.aziendale).map((v) => v.id),
+    impostazioni: Object.assign({}, AZIENDALI),
     corrente: voci[0].id, storicoVuoto: true, inPausa: false, pausaManuale: false, motivoPausa: null,
     restanteMs: 18 * 60000 + 42000, totaleMs: 30 * 60000, contoAttivo: true, attendeFineVideo: false,
     finestra, monitor, modo: 'estendi', scene: []
@@ -43,13 +117,15 @@ iframe { display: block; width: 100%; height: 100%; border: 0; }
 
   function totale() { return s.impostazioni.rotazioneAttiva ? s.impostazioni.intervalloValore * (s.impostazioni.intervalloUnita === 'ore' ? 3600000 : 60000) : null; }
   function scene() {
-    s.modo = monitor.length === 1 ? 'estendi' : s.impostazioni.modoMonitor;
+    // Il modo è quello dello sfondo in onda, se ne ha uno suo (spec personalizzazione P5).
+    s.modo = monitor.length === 1 ? 'estendi' : ((personalizzazioni[s.corrente] || {}).modoMonitor || s.impostazioni.modoMonitor);
     s.scene = s.modo === 'estendi'
       ? [{ area: { x: 0, y: 0, w: finestra.w, h: finestra.h }, monitor: monitor.map(({ x, y, w, h }) => ({ x, y, w, h })) }]
       : monitor.map((m) => ({ area: { x: m.x, y: m.y, w: m.w, h: m.h }, monitor: [{ x: 0, y: 0, w: m.w, h: m.h }] }));
   }
   function invia(m) { app.contentWindow.postMessage({ allApp: m }, '*'); }
   function inviaStato() {
+    voci.forEach(completa);
     scene();
     s.storicoVuoto = storico.length === 0;
     s.contoAttivo = s.totaleMs !== null && !s.pausaManuale;
@@ -74,13 +150,14 @@ iframe { display: block; width: 100%; height: 100%; border: 0; }
   window.addEventListener('message', (e) => {
     if (e.source !== app.contentWindow || !e.data || !e.data.dallApp) return;
     const m = e.data.dallApp;
+    registro.textContent = new Date().toLocaleTimeString('it-IT') + '  ' + JSON.stringify(m) + '\n' + registro.textContent;
     switch (m.tipo) {
       case 'pronta':
-        invia({ tipo: 'aggiornamenti', versione: '1.1.0', stato: 'aggiornato', ultimoControllo: new Date().toISOString(), versioneNuova: null, errore: null });
+        invia({ tipo: 'aggiornamenti', versione: '1.2.0', stato: 'aggiornato', ultimoControllo: new Date().toISOString(), versioneNuova: null, errore: null });
         break;
       case 'controllaAggiornamenti':
-        invia({ tipo: 'aggiornamenti', versione: '1.1.0', stato: 'controllo', ultimoControllo: null, versioneNuova: null, errore: null });
-        setTimeout(() => invia({ tipo: 'aggiornamenti', versione: '1.1.0', stato: 'pronto', ultimoControllo: new Date().toISOString(), versioneNuova: '1.2.0', errore: null }), 800);
+        invia({ tipo: 'aggiornamenti', versione: '1.2.0', stato: 'controllo', ultimoControllo: null, versioneNuova: null, errore: null });
+        setTimeout(() => invia({ tipo: 'aggiornamenti', versione: '1.2.0', stato: 'pronto', ultimoControllo: new Date().toISOString(), versioneNuova: '1.3.0', errore: null }), 800);
         break;
       case 'installaAggiornamento': invia({ tipo: 'avviso', testo: 'Nel programma partirebbe l\'installazione' }); break;
       case 'mostra': mostra(m.id); break;
@@ -97,23 +174,35 @@ iframe { display: block; width: 100%; height: 100%; border: 0; }
         if (tempoCambiato) { s.totaleMs = totale(); s.restanteMs = s.totaleMs; }
         break;
       }
+      case 'personalizza': {
+        const errore = personalizza(m.id, m.modifiche || {});
+        if (errore) invia({ tipo: 'avviso', testo: errore });
+        break;
+      }
+      case 'ripristinaSfondo': delete personalizzazioni[m.id]; break;
       case 'playlist':
         if (!m.ids.length) invia({ tipo: 'avviso', testo: 'Lascia almeno uno sfondo nella playlist' });
         else s.playlist = m.ids;
         break;
       case 'importaDialogo': invia({ tipo: 'avviso', testo: 'Nella prova nel browser la finestra di selezione non c\'è: trascina un file nella libreria' }); break;
       case 'importaFile':
-        (m.nomiFile || []).forEach((nome, i) => voci.push({ id: 'u-prova-' + Date.now() + i, tipoVoce: /\.(mp4|webm)$/i.test(nome) ? 'video' : /\.html?$/i.test(nome) ? 'html' : 'immagine', titolo: nome.replace(/\.[^.]+$/, ''), aziendale: false, url: '/non-esiste', durataSecondi: null, disponibile: false }));
+        (m.nomiFile || []).forEach((nome, i) => voci.push({ id: 'u-prova-' + Date.now() + i, tipoVoce: /\.(mp4|webm)$/i.test(nome) ? 'video' : /\.html?$/i.test(nome) ? 'html' : 'immagine', titolo: nome.replace(/\.[^.]+$/, ''), aziendale: false, urlFile: '/non-esiste', opzioni: [], durataSecondi: null, disponibile: false }));
         invia({ tipo: 'avviso', testo: (m.nomiFile || []).length + ' file simulati nella libreria' });
         break;
       case 'elimina': {
         const i = voci.findIndex((v) => v.id === m.id && !v.aziendale);
-        if (i >= 0) { const [v] = voci.splice(i, 1); s.playlist = s.playlist.filter((x) => x !== m.id); invia({ tipo: 'avviso', testo: 'Eliminato dalla libreria: ' + v.titolo }); }
+        if (i >= 0) {
+          const [v] = voci.splice(i, 1);
+          s.playlist = s.playlist.filter((x) => x !== m.id);
+          delete personalizzazioni[m.id];
+          invia({ tipo: 'avviso', testo: 'Eliminato dalla libreria: ' + v.titolo });
+        }
         break;
       }
       case 'apriLog': invia({ tipo: 'avviso', testo: 'Nel programma si apre la cartella dei log' }); break;
       case 'ripristina':
-        s.impostazioni = { intervalloValore: 30, intervalloUnita: 'minuti', rotazioneAttiva: true, fineVideo: true, ordine: 'sequenziale', dissolvenzaSecondi: 2, modoMonitor: 'estendi', pausaABatteria: true, avvioConWindows: true, aggiornamentiAutomatici: true };
+        s.impostazioni = Object.assign({}, AZIENDALI);
+        Object.keys(personalizzazioni).forEach((k) => delete personalizzazioni[k]);
         s.totaleMs = totale(); s.restanteMs = s.totaleMs;
         invia({ tipo: 'avviso', testo: 'Impostazioni aziendali ripristinate' });
         break;

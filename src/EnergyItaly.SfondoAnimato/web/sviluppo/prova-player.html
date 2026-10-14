@@ -51,15 +51,21 @@ button { min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px soli
   function invia(m) { player.contentWindow.postMessage({ alPlayer: m }, '*'); scrivi('-> ' + JSON.stringify(m).slice(0, 180)); }
   function mostra(v) {
     ultima = v;
-    invia({ tipo: 'mostra', id: v.id, tipoVoce: v.tipoVoce, url: v.url, modo: modoEffettivo(), scene: scene(), dissolvenzaMs: 2000, fineVideo: true });
+    invia({ tipo: 'mostra', id: v.id, tipoVoce: v.tipoVoce, url: v.url, riempimento: v.riempimento || 'riempi', modo: modoEffettivo(), scene: scene(), dissolvenzaMs: 2000, fineVideo: true });
   }
 
   const manifest = await (await fetch('/animazioni/manifest.json')).json();
+  // URL come li costruisce il programma (spec personalizzazione 3.2): colori della prima tavolozza e opzioni predefinite.
+  const t = manifest.tavolozze[0];
   const voci = manifest.animazioni.map((a) => ({
     id: a.id, titolo: a.titolo, tipoVoce: 'animazione',
-    url: '/animazioni/' + a.file + '?' + new URLSearchParams(Object.entries(a.parametri).map(([k, v]) => [k, String(v)]))
+    url: '/animazioni/' + a.file + '?' + new URLSearchParams([
+      ['fondo', t.fondo.slice(1)], ['accento', t.accento.slice(1)], ['secondario', t.secondario.slice(1)],
+      ...(a.opzioni || []).map((o) => [o.id, typeof o.predefinito === 'boolean' ? (o.predefinito ? '1' : '0') : String(o.predefinito)])
+    ])
   }));
   voci.push({ id: 'logo', titolo: 'Immagine (logo)', tipoVoce: 'immagine', url: '/animazioni/img/brand/LogoEnergyItalyWhite.svg' });
+  voci.push({ id: 'logo-adattato', titolo: 'Immagine adattata', tipoVoce: 'immagine', riempimento: 'adatta', url: '/animazioni/img/brand/LogoEnergyItalyWhite.svg' });
 
   const contenitore = document.getElementById('voci');
   voci.forEach((v) => {
