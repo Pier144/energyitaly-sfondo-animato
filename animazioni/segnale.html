@@ -27,7 +27,7 @@
 .alone, .punto, .risposta { border-radius: 50%; }
 .cerchio-onda {
   fill: none;
-  stroke: rgba(178,224,104,0.6);
+  stroke: rgba(var(--accento-chiaro-rgb),0.6);
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
   opacity: 0;
@@ -37,7 +37,7 @@
 .gira-contro { animation: gira var(--giro) linear infinite reverse; }
 @keyframes gira { to { transform: rotate(360deg); } }
 .base { fill: rgba(255,255,255,0.1); }
-.carica { fill: #b2e068; opacity: 0; }
+.carica { fill: var(--accento-chiaro); opacity: 0; }
 .punto { opacity: 0; animation-name: punto; }
 .risposta { opacity: 0; animation-name: risposta; }
 /* Il punto si accende al passaggio del fronte e si spegne in fretta: la scia corta fa leggere l'onda come un anello. */
@@ -65,6 +65,8 @@
   // Parametri: ?velocita=1&onde=2 (anelli intorno al marchio a ogni impulso)
   const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
   const onde = Math.max(0, Math.min(4, Math.round(Sfondo.parametro('onde', 2))));
+  // Colori dalla tavolozza (sfondo.js).
+  const C = Sfondo.colori();
 
   // Le parti del marchio, nell'ordine in cui si accendono: punto, arco alto, arco sinistro, arco basso, barra, anello.
   const PARTI = [
@@ -103,9 +105,9 @@
     });
     svg += '<g class="gira" style="--giro:' + Math.round(140 / velocita) + 's">' +
       '<circle class="orbita" cx="102.74" cy="102.74" r="152" stroke="rgba(255,255,255,0.16)" stroke-width="1" stroke-dasharray="1 9"></circle>' +
-      '<circle cx="254.74" cy="102.74" r="4.5" fill="#b2e068"></circle></g>';
+      '<circle cx="254.74" cy="102.74" r="4.5" fill="' + C.accentoChiaro + '"></circle></g>';
     svg += '<g class="gira-contro" style="--giro:' + Math.round(220 / velocita) + 's">' +
-      '<circle class="orbita" cx="102.74" cy="102.74" r="196" stroke="rgba(74,144,200,0.35)" stroke-width="1" stroke-dasharray="90 26 6 26"></circle>' +
+      '<circle class="orbita" cx="102.74" cy="102.74" r="196" stroke="' + Sfondo.rgba('secondarioChiaro', 0.35) + '" stroke-width="1" stroke-dasharray="90 26 6 26"></circle>' +
       '<circle cx="102.74" cy="-93.26" r="3" fill="rgba(255,255,255,0.7)"></circle></g>';
     svg += '<g class="base">' + PARTI.join('') + '</g>';
     PARTI.forEach((parte, i) => {
@@ -133,7 +135,7 @@
     ]));
     html.push('<div class="alone animato" style="animation-name:' + nomeAlone + ';left:' + (cx - alone / 2).toFixed(0) + 'px;top:' + (cy - alone / 2).toFixed(0) +
       'px;width:' + alone.toFixed(0) + 'px;height:' + alone.toFixed(0) +
-      'px;background:radial-gradient(closest-side,rgba(122,181,42,0.32) 0%,rgba(122,181,42,0.1) 45%,rgba(122,181,42,0) 100%)"></div>');
+      'px;background:radial-gradient(closest-side,' + Sfondo.rgba('accento', 0.32) + ' 0%,' + Sfondo.rgba('accento', 0.1) + ' 45%,' + Sfondo.rgba('accento', 0) + ' 100%)"></div>');
     html.push('<div class="emblema" style="left:' + (cx - lato / 2).toFixed(0) + 'px;top:' + (cy - lato / 2).toFixed(0) +
       'px;width:' + lato.toFixed(0) + 'px;height:' + lato.toFixed(0) + 'px">' + emblema(id, tempi, regole) + '</div>');
   }
@@ -169,7 +171,8 @@
         const picco = (1 - 0.55 * dist / lontano).toFixed(2);
         html.push('<div class="punto animato" style="left:' + (x - lato / 2).toFixed(1) + 'px;top:' + (y - lato / 2).toFixed(1) + 'px;width:' + lato.toFixed(1) +
           'px;height:' + lato.toFixed(1) + 'px;--picco:' + picco + ';animation-delay:' + ritardo(partenza * ciclo + dist / v, ciclo) +
-          ';background:radial-gradient(closest-side,#eefad9 0%,#b2e068 7%,rgba(178,224,104,0.45) 16%,rgba(122,181,42,0.17) 45%,rgba(122,181,42,0) 100%)"></div>');
+          ';background:radial-gradient(closest-side,' + Sfondo.tono('accento', 48) + ' 0%,' + C.accentoChiaro + ' 7%,' + Sfondo.rgba('accentoChiaro', 0.45) + ' 16%,' +
+          Sfondo.rgba('accento', 0.17) + ' 45%,' + Sfondo.rgba('accento', 0) + ' 100%)"></div>');
       }
     }
 
@@ -182,7 +185,7 @@
     const alto = 360 * kl;
     html.push('<div class="risposta animato" style="z-index:9;left:' + (lx - largo / 2).toFixed(0) + 'px;top:' + (ly - alto / 2).toFixed(0) + 'px;width:' + largo.toFixed(0) +
       'px;height:' + alto.toFixed(0) + 'px;animation-delay:' + ritardo(partenza * ciclo + Math.hypot(lx - cx, ly - cy) / v, ciclo) +
-      ';background:radial-gradient(closest-side,rgba(178,224,104,0.4) 0%,rgba(178,224,104,0) 100%)"></div>');
+      ';background:radial-gradient(closest-side,' + Sfondo.rgba('accentoChiaro', 0.4) + ' 0%,' + Sfondo.rgba('accentoChiaro', 0) + ' 100%)"></div>');
     return ciclo;
   }
 
@@ -191,11 +194,11 @@
     const m = s.monitorLogo;
     const html = [];
     const regole = [];
-    html.push('<div class="strato" style="background:linear-gradient(160deg,#081324 0%,#0d1f38 55%,#12304f 100%)"></div>');
+    html.push('<div class="strato" style="background:linear-gradient(160deg,' + Sfondo.tono('fondo', -5) + ' 0%,' + C.fondo + ' 55%,' + Sfondo.tono('fondo', 6) + ' 100%)"></div>');
     html.push('<div class="strato" style="opacity:0.5;background-image:radial-gradient(rgba(255,255,255,0.09) 1.2px,transparent 1.6px);background-size:' +
       (28 * k).toFixed(1) + 'px ' + (28 * k).toFixed(1) + 'px"></div>');
     html.push('<div class="strato" style="background:radial-gradient(ellipse ' + (1200 * k) + 'px ' + (650 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
-      'px,rgba(8,19,36,0.92) 0%,rgba(8,19,36,0) 70%)"></div>');
+      'px,' + Sfondo.rgba(Sfondo.velo(-5), 0.92) + ' 0%,' + Sfondo.rgba(Sfondo.velo(-5), 0) + ' 70%)"></div>');
 
     const ciclo = impulso(s, html, regole);
 
