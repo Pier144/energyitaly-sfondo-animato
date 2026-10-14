@@ -14,6 +14,36 @@
 
 **Regole del progetto** (`docs/PRD.md` RNF-05/06): commenti, messaggi e log in italiano con accenti veri; mai trattini lunghi (em-dash, en-dash) in codice, commenti e documenti. I file C# del progetto usano CRLF: modificarli con l'Edit tool (che conserva gli a capo). Ogni commit termina con la riga `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
+## Correzioni dopo la revisione (prevalgono sui task)
+
+Quattro revisori hanno letto il piano parte per parte. Dove un task qui sotto dice diversamente, vale questa sezione.
+
+**Chunk 1**
+- Task 2: la costante `Manifest` di `CatalogoTests` resta valida (senza `rotta` e `strana`); le opzioni sbagliate stanno in una costante a parte `ManifestConErrori`, usata solo da `Carica_Manifest2_OpzioniValideEScartate`, così i test esistenti sugli avvisi restano verdi. Nello stesso task l'atteso di `MessaggiTests.Mostra_ContieneVoceEScene` diventa l'URL senza query: ogni commit resta verde.
+- Task 2: `Catalogo.Carica` non restituisce le tavolozze (spec 4.1): c'è `Catalogo.LeggiTavolozze`, chiamata dal coordinatore all'avvio.
+- Task 3: `Colori` si scrive nel Task 3 (lo usa `Applica`) e non si ripete nel Task 4. Nel test `Normalizza_NumeroAlLimiteEAlPasso` la seconda chiamata usa una lista di avvisi nuova.
+- Task 4: un test di `Scrivi`/`ScriviValore` (numero con cultura italiana, booleano).
+
+**Chunk 2**
+- Task 6: `LeggiComandoApp`, se `tipo == "personalizza"`, legge `modifiche` con `LeggiModifichePersonalizzazione` e restituisce `new ComandoApp(tipo, id, ids, null, personalizzazione)`.
+- Task 7: non è una rifattorizzazione pura (aggiunge colori all'URL, tavolozze e `Riconcilia`), ma nessun test esistente cambia. `RicalcolaDisposizione` restituisce `true` se ha mandato un `mostra`; in `CambiaImpostazioni` il ramo del video (`fineVideo`/`rotazioneAttiva`) parte se `RicalcolaDisposizione` non ha già mandato lo sfondo, così un comando con più campi non perde il `mostra` e non ne manda due.
+- Task 8: test in più: `personalizza` del solo modo sullo sfondo in onda (due monitor: un `mostra` da 600 ms in Duplica; un monitor: nessun `mostra`); `ripristinaSfondo` sullo sfondo in onda (un `mostra` in più, 600 ms) e su uno non in onda (nessun `mostra`); in `Ripristina` la dissolvenza è quella delle impostazioni. In `Ripristina` non serve il ramo `layout` della spec 4.5: l'area dipende solo dai monitor, che `Ripristina` non tocca.
+
+**Chunk 3**
+- Task 9: `RUOLI` ha anche la saturazione: `[base, luce, saturazione]`, e `Sfondo.tono(ruolo, luce, saturazione)`. Valori verificati con Energy Italy: `fondoScuro [fondo, -6, 0]`, `fondoChiaro [fondo, 8, 0]`, `accentoChiaro [accento, 21, 0]`, `accentoPallido [accento, 36, 0]`, `secondarioScuro [secondario, -5, 0]`, `secondarioMedio [secondario, 11, -6]` (dà `#2f78b5`), `secondarioChiaro [secondario, 20, -12]` (dà `#4a8fc8`).
+- Task 9: il velo dietro il logo si chiede per animazione: `Sfondo.velo(luce)` = tinta e saturazione del fondo, luminosità `limita(min(L + luce, 12))`: resta scuro con un fondo chiaro e non esce mai da 0-100. La variabile CSS `--velo` vale `velo(0)`.
+- Task 9: con "Personalizzata" il secondario ricavato è il fondo con saturazione +20 e luminosità +22 se il fondo è scuro (luminosità sotto 50), -30 se è chiaro: un fondo chiaro non rende bianchi tutti i blu.
+- Task 9, verifica: per le cinque tavolozze e per `?fondo=d8e4ee&accento=1e7a3a`, tutti i valori di `Sfondo.colori()` sono `#rrggbb` validi.
+- Task 10: nello stesso commit `prova-app.html` e `prova-player.html` costruiscono l'URL dalle opzioni del manifest 2 (predefiniti e colori della prima tavolozza), così non restano rotte fino ai Task 13-14.
+- Task 11-12: le tabelle si leggono con la colonna "velo": ogni colore usato come velo dietro il logo (anche il centro del gradiente di onda-di-luce, `#0f1e35 0%`) diventa `Sfondo.velo(scarto)` con lo scarto rispetto al fondo indicato. `#081628` non esiste in paesaggio. Confronto con la 1.1.2: `git show v1.1.2:animazioni/<file> > animazioni/_<file>` (bash), poi cancellare il file. Colori rimasti: `grep -n "rgba\?([0-9]\|#[0-9a-fA-F]\{6\}\|\[[0-9]\+, *[0-9]\+, *[0-9]\+\]"`; ammessi solo il bianco, il nero `#000` della maschera di aurora e gli angoli `[0, 120, 240]` di paesaggio.
+
+**Chunk 4**
+- La variabile globale della barra in `app.js` si chiama `barraSfondo` (`barra` è già usata in `creaSchedaPlaylist`).
+- Task 15: l'anteprima si aggiorna al massimo ogni 250 ms durante il trascinamento (se un aggiornamento è già in attesa non si rimanda); al `change` di cursore e colore prima si aggiorna l'anteprima subito, poi si svuota la bozza e si manda `personalizza`; al `blur` di un cursore o di un colore la bozza si svuota e la barra si ridisegna con l'ultimo stato. L'anteprima ha un solo `ResizeObserver` (non `inScala` a ogni ricarica) e riceve `pausa`/`riprendi` come il palco. La firma che decide la ricostruzione non contiene lo sfondo in onda: quando cambia solo quello si aggiorna il piede ("Mostra ora"). Se il controllo che aveva il fuoco non c'è più o è disattivato, il fuoco va sul pulsante ✕. Il testo sotto l'anteprima è "ANTEPRIMA · le modifiche si salvano da sole".
+- Task 16: aprire o cambiare scheda ridisegna la Libreria (`renderLibreria()` dopo `apri`); `alChiudere` mette il fuoco sulla scheda solo se è nel documento e visibile, altrimenti su "Importa file". `prova-app.html` tiene un registro dei messaggi ricevuti dalla finestra (sotto la pagina, nascosto con `?registro=0`).
+- Task 16, checklist in più: scelta a pillole (Onda di luce, Ampiezza Forte); eliminare uno sfondo importato con la barra aperta (la barra si chiude); passare da una scheda all'altra; tornare a "Energy Italy" toglie "PERSONALIZZATO"; con `?monitor=1` compare "Vale quando colleghi altri monitor"; il testo nuovo in Impostazioni; solo tastiera (Tab, Esc, fuoco dopo ogni clic).
+- Task 17: nel programma vero controllare che `<input type="color">` di WebView2 mandi `input` mentre si sceglie; se arriva solo alla conferma va bene lo stesso (l'anteprima cambia alla conferma).
+
 ## File
 
 | File | Cosa |
