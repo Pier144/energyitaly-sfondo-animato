@@ -35,6 +35,7 @@
 
   // ---------- Stato locale ----------
   let stato = null;
+  let aggiornamenti = null;
   let ricevutoAlle = 0;
   let scheda = 'onda';
   let filtro = 'tutti';
@@ -196,6 +197,7 @@
     renderStriscia();
     renderLibreria();
     renderImpostazioni();
+    renderAggiornamenti();
     potaCache();
     aggiornaConto();
   }
@@ -674,6 +676,7 @@
     $('#sw-fine-video').setAttribute('aria-checked', String(imp.fineVideo));
     $('#sw-batteria').setAttribute('aria-checked', String(imp.pausaABatteria));
     $('#sw-avvio').setAttribute('aria-checked', String(imp.avvioConWindows));
+    $('#sw-aggiornamenti').setAttribute('aria-checked', String(imp.aggiornamentiAutomatici));
   }
 
   // ---------- Conto alla rovescia ----------
@@ -705,6 +708,43 @@
     attesaAvviso = setTimeout(() => { avviso.hidden = true; }, 2600);
   }
 
+  // ---------- Aggiornamenti (spec aggiornamento automatico 4.6) ----------
+  function quando(iso) {
+    const d = new Date(iso);
+    const ora = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const oggi = new Date();
+    const ieri = new Date();
+    ieri.setDate(oggi.getDate() - 1);
+    if (d.toDateString() === oggi.toDateString()) return 'oggi alle ' + ora;
+    if (d.toDateString() === ieri.toDateString()) return 'ieri alle ' + ora;
+    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' }) + ' alle ' + ora;
+  }
+
+  function renderAggiornamenti() {
+    const a = aggiornamenti;
+    if (!a) return;
+    const automatici = !stato || stato.impostazioni.aggiornamentiAutomatici;
+    let testo;
+    switch (a.stato) {
+      case 'controllo': testo = 'Controllo in corso…'; break;
+      case 'pronto':
+        testo = automatici
+          ? `Versione ${a.versioneNuova} pronta: si installa appena il desktop è coperto`
+          : `Versione ${a.versioneNuova} disponibile`;
+        break;
+      case 'errore': testo = `Ultimo controllo non riuscito (${a.errore})`; break;
+      case 'fallito': testo = `Installazione della ${a.versioneNuova} non riuscita: prova Installa ora o contatta l'IT`; break;
+      case 'sviluppo': testo = 'Copia di sviluppo: non si installa nulla' + (a.versioneNuova ? ` · disponibile la ${a.versioneNuova}` : ''); break;
+      default: testo = a.ultimoControllo ? 'Aggiornato · ultimo controllo ' + quando(a.ultimoControllo) : 'Nessun controllo ancora fatto';
+    }
+    $('#titolo-versione').textContent = 'Versione ' + a.versione;
+    $('#stato-versione').textContent = testo;
+    const installa = (a.stato === 'pronto' && !automatici) || a.stato === 'fallito';
+    $('#btn-installa').hidden = !installa;
+    $('#btn-controlla').hidden = installa;
+    $('#btn-controlla').disabled = a.stato === 'controllo';
+  }
+
   // ---------- Collegamenti ----------
   function collega() {
     const conStato = (azione) => () => { if (stato) azione(); };
@@ -720,6 +760,9 @@
     $('#sw-fine-video').addEventListener('click', fineVideo);
     $('#sw-batteria').addEventListener('click', conStato(() => modifica({ pausaABatteria: !stato.impostazioni.pausaABatteria })));
     $('#sw-avvio').addEventListener('click', conStato(() => modifica({ avvioConWindows: !stato.impostazioni.avvioConWindows })));
+    $('#sw-aggiornamenti').addEventListener('click', conStato(() => modifica({ aggiornamentiAutomatici: !stato.impostazioni.aggiornamentiAutomatici })));
+    $('#btn-controlla').addEventListener('click', () => ponte.invia({ tipo: 'controllaAggiornamenti' }));
+    $('#btn-installa').addEventListener('click', () => ponte.invia({ tipo: 'installaAggiornamento' }));
     $('#btn-log').addEventListener('click', () => ponte.invia({ tipo: 'apriLog' }));
     $('#btn-ripristina').addEventListener('click', () => ponte.invia({ tipo: 'ripristina' }));
     $('#btn-importa').addEventListener('click', () => ponte.invia({ tipo: 'importaDialogo' }));
@@ -752,6 +795,9 @@
       render();
     } else if (m.tipo === 'avviso') {
       mostraAvviso(m.testo);
+    } else if (m.tipo === 'aggiornamenti') {
+      aggiornamenti = m;
+      renderAggiornamenti();
     }
   });
 

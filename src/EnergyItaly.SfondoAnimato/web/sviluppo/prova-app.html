@@ -75,7 +75,14 @@ iframe { display: block; width: 100%; height: 100%; border: 0; }
     if (e.source !== app.contentWindow || !e.data || !e.data.dallApp) return;
     const m = e.data.dallApp;
     switch (m.tipo) {
-      case 'pronta': break;
+      case 'pronta':
+        invia({ tipo: 'aggiornamenti', versione: '1.1.0', stato: 'aggiornato', ultimoControllo: new Date().toISOString(), versioneNuova: null, errore: null });
+        break;
+      case 'controllaAggiornamenti':
+        invia({ tipo: 'aggiornamenti', versione: '1.1.0', stato: 'controllo', ultimoControllo: null, versioneNuova: null, errore: null });
+        setTimeout(() => invia({ tipo: 'aggiornamenti', versione: '1.1.0', stato: 'pronto', ultimoControllo: new Date().toISOString(), versioneNuova: '1.2.0', errore: null }), 800);
+        break;
+      case 'installaAggiornamento': invia({ tipo: 'avviso', testo: 'Nel programma partirebbe l\'installazione' }); break;
       case 'mostra': mostra(m.id); break;
       case 'successivo': mostra(prossima()); break;
       case 'precedente': if (storico.length) mostra(storico.pop(), false); break;
