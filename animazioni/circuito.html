@@ -16,8 +16,8 @@
   stroke-dasharray: 60 1000;
   animation: corsa 9s linear infinite;
 }
-.alone { stroke: #7AB52A; stroke-width: 10px; opacity: 0.3; }
-.nucleo { stroke: #dcf7b0; stroke-width: 3px; }
+.alone { stroke: var(--accento); stroke-width: 10px; opacity: 0.3; }
+.nucleo { stroke: var(--nucleo); stroke-width: 3px; }
 @keyframes corsa { from { stroke-dashoffset: 60; } to { stroke-dashoffset: -1000; } }
 </style>
 </head>
@@ -31,6 +31,8 @@
   // Parametri: ?tracce=24&velocita=1  (tracce riferite a un'altezza di 1080 px)
   const tracceBase = Math.max(4, Math.round(Sfondo.parametro('tracce', 24)));
   const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
+  // Colori dalla tavolozza (sfondo.js); il nucleo degli impulsi è un accento molto chiaro.
+  document.documentElement.style.setProperty('--nucleo', Sfondo.tono('accento', 39, 17));
 
   Sfondo.avvia((s) => {
     const W = s.larghezza;
@@ -80,15 +82,15 @@
     }
 
     let html = '';
-    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1600 * k) + 'px ' + (900 * k) + 'px at 100% 0%,rgba(122,181,42,0.3) 0%,rgba(122,181,42,0) 65%),' +
-      'linear-gradient(100deg,#0a1527 0%,#0e223d 50%,#132f52 100%)"></div>';
+    html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1600 * k) + 'px ' + (900 * k) + 'px at 100% 0%,' + Sfondo.rgba('accento', 0.3) + ' 0%,' + Sfondo.rgba('accento', 0) + ' 65%),' +
+      'linear-gradient(100deg,' + Sfondo.tono('fondo', -4) + ' 0%,' + Sfondo.tono('fondo', 1) + ' 50%,' + Sfondo.tono('fondo', 6) + ' 100%)"></div>';
     html += '<div class="strato puntini"></div>';
     html += '<svg class="strato" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
-      '<path d="' + piste + '" fill="none" stroke="#214d7a" stroke-width="2.5" stroke-linejoin="round" opacity="0.85"/>' +
-      '<path d="' + piazzole + '" fill="#0c1a30" stroke="#3d74a6" stroke-width="2"/></svg>';
+      '<path d="' + piste + '" fill="none" stroke="' + Sfondo.tono('secondario', -4, -8) + '" stroke-width="2.5" stroke-linejoin="round" opacity="0.85"/>' +
+      '<path d="' + piazzole + '" fill="' + Sfondo.tono('fondo', -2) + '" stroke="' + Sfondo.tono('secondario', 11, -19) + '" stroke-width="2"/></svg>';
     html += impulsi;
     html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1200 * k) + 'px ' + (650 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
-      'px,rgba(10,21,39,0.92) 0%,rgba(10,21,39,0) 70%)"></div>';
+      'px,' + Sfondo.rgba(Sfondo.velo(-4), 0.92) + ' 0%,' + Sfondo.rgba(Sfondo.velo(-4), 0) + ' 70%)"></div>';
 
     document.getElementById('scena').innerHTML = html;
     Sfondo.posizionaLogo(document.getElementById('logo'), s);
