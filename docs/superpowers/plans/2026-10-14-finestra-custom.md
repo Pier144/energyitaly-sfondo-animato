@@ -1098,6 +1098,8 @@ sealed class BarraTitoloFinestra : IDisposable
 ```
 
 - [ ] **Step 3: Build** dell'app senza avvisi nuovi.
+
+> **Nota di esecuzione (2026-10-14):** nella prova sul PC il clic destro sulla striscia non apriva il menu di sistema (la procedura standard non riconosce la striscia come barra del titolo). Aggiunta in `BarraTitoloFinestra` la gestione di `WM_NCRBUTTONDOWN` e `WM_NCRBUTTONUP` con `ApriMenuDiSistema`, e in `Win32.cs` le costanti e funzioni relative (`SC_SIZE`, `SC_MOVE`, `TPM_*`, `MF_*`, `GetSystemMenu`, `EnableMenuItem`, `TrackPopupMenu`). Vedi spec 3.3.
 - [ ] **Step 4: Commit.**
 
 ```bash

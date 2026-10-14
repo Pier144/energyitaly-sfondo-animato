@@ -1,16 +1,21 @@
 using System.Drawing;
 using EnergyItaly.SfondoAnimato.Core;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Win32;
 
 namespace EnergyItaly.SfondoAnimato;
 
-/// <summary>Finestra galleria (design B). Chiuderla la nasconde: il programma resta nell'area di notifica (D11).</summary>
+/// <summary>
+/// Finestra galleria (design B). Chiuderla la nasconde: il programma resta nell'area di notifica (D11).
+/// In cima la striscia del titolo Energy Italy (D12); la WebView occupa il resto.
+/// </summary>
 sealed class FinestraPrincipale : Form
 {
     static readonly Color Fondo = Color.FromArgb(0x07, 0x11, 0x1f);
     static readonly TimeSpan IntervalloCrash = TimeSpan.FromMinutes(5);
 
     readonly ILog log;
+    readonly BarraTitoloFinestra barra;
     HostWebView web;
     readonly Action<string> daApp;
     readonly Action<IReadOnlyList<string>> importa;
@@ -28,7 +33,19 @@ sealed class FinestraPrincipale : Form
         Icon = icona;
         BackColor = Fondo;
         StartPosition = FormStartPosition.CenterScreen;
+        barra = new BarraTitoloFinestra(this, icona, Text);
+        DoubleBuffered = true;
+        SystemEvents.UserPreferenceChanged += PreferenzeCambiate;
     }
+
+    protected override void WndProc(ref Message m)
+    {
+        // barra è null solo se Windows manda messaggi prima della fine del costruttore.
+        if (barra is not null && barra.Gestisci(ref m, ProceduraStandard)) return;
+        base.WndProc(ref m);
+    }
+
+    void ProceduraStandard(ref Message m) => base.WndProc(ref m);
 
     protected override void OnHandleCreated(EventArgs e)
     {
@@ -36,6 +53,10 @@ sealed class FinestraPrincipale : Form
         int scuro = 1;
         if (Win32.DwmSetWindowAttribute(Handle, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref scuro, sizeof(int)) != 0)
             Win32.DwmSetWindowAttribute(Handle, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE_PRIMA_20H1, ref scuro, sizeof(int));
+        barra.ImpostaDpi(DeviceDpi);
+        // Ricalcolo della cornice subito: la barra standard non compare nemmeno al primo disegno.
+        Win32.SetWindowPos(Handle, IntPtr.Zero, 0, 0, 0, 0,
+            Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOZORDER | Win32.SWP_NOACTIVATE | Win32.SWP_FRAMECHANGED);
         float k = DeviceDpi / 96f;
         var lavoro = Screen.FromHandle(Handle).WorkingArea;
         MinimumSize = new Size(Math.Min((int)(960 * k), lavoro.Width), Math.Min((int)(640 * k), lavoro.Height));
@@ -84,7 +105,7 @@ sealed class FinestraPrincipale : Form
     {
         try
         {
-            await web.InizializzaAsync(Handle, ClientRectangle, scalaFissa: false, Fondo, $"https://{Catalogo.HostApp}/app/index.html");
+            await web.InizializzaAsync(Handle, AreaWebView(), scalaFissa: false, Fondo, $"https://{Catalogo.HostApp}/app/index.html");
             AggiornaWebView();
         }
         catch (Exception ex)
@@ -96,6 +117,8 @@ sealed class FinestraPrincipale : Form
     protected override void OnResize(EventArgs e)
     {
         base.OnResize(e);
+        // I pulsanti seguono il bordo destro: si ridisegna solo la striscia.
+        barra.Ridisegna();
         AggiornaWebView();
     }
 
@@ -105,12 +128,51 @@ sealed class FinestraPrincipale : Form
         AggiornaWebView();
     }
 
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
+    {
+        base.OnDpiChanged(e);
+        barra.ImpostaDpi(e.DeviceDpiNew);
+        AggiornaWebView();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        barra.Disegna(e.Graphics);
+    }
+
+    protected override void OnActivated(EventArgs e)
+    {
+        base.OnActivated(e);
+        barra.Ridisegna();
+    }
+
+    protected override void OnDeactivate(EventArgs e)
+    {
+        base.OnDeactivate(e);
+        barra.Ridisegna();
+    }
+
+    // Il contrasto alto può cambiare a programma aperto: la striscia passa ai colori di sistema.
+    void PreferenzeCambiate(object? mittente, UserPreferenceChangedEventArgs e)
+    {
+        if (IsHandleCreated && !IsDisposed) BeginInvoke(new Action(barra.Ridisegna));
+    }
+
+    /// <summary>L'area della WebView: tutto sotto la striscia del titolo.</summary>
+    Rectangle AreaWebView()
+    {
+        int alto = barra.Altezza;
+        return new Rectangle(0, alto, ClientSize.Width, Math.Max(0, ClientSize.Height - alto));
+    }
+
     void AggiornaWebView()
     {
         var controller = web.Controller;
         if (controller is null) return;
-        controller.Bounds = ClientRectangle;
         bool visibile = Visible && WindowState != FormWindowState.Minimized;
+        // Ridotta a icona l'area client è 0 x 0: i limiti restano quelli di prima.
+        if (visibile) web.ImpostaArea(AreaWebView());
         if (controller.IsVisible != visibile) controller.IsVisible = visibile;
     }
 
@@ -137,6 +199,14 @@ sealed class FinestraPrincipale : Form
         chiusuraDefinitiva = true;
         web.Dispose();
         Close();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) SystemEvents.UserPreferenceChanged -= PreferenzeCambiate;
+        base.Dispose(disposing);
+        // Dopo: durante la distruzione della finestra WndProc riceve ancora messaggi.
+        if (disposing) barra.Dispose();
     }
 
     public void Invia(string json)

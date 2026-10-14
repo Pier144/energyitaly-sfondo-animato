@@ -54,6 +54,46 @@ static class Win32
     public const int OBJID_WINDOW = 0;
     public const int CHILDID_SELF = 0;
     public const uint GA_ROOT = 2;
+    // Barra del titolo personalizzata (FinestraPrincipale)
+    public const int WM_NCCALCSIZE = 0x0083;
+    public const int WM_NCHITTEST = 0x0084;
+    public const int WM_NCMOUSEMOVE = 0x00A0;
+    public const int WM_NCLBUTTONDOWN = 0x00A1;
+    public const int WM_NCLBUTTONUP = 0x00A2;
+    public const int WM_NCLBUTTONDBLCLK = 0x00A3;
+    public const int WM_NCRBUTTONDOWN = 0x00A4;
+    public const int WM_NCRBUTTONUP = 0x00A5;
+    public const int WM_NCMOUSELEAVE = 0x02A2;
+    public const int SC_SIZE = 0xF000;
+    public const int SC_MOVE = 0xF010;
+    public const uint TPM_RIGHTBUTTON = 0x2;
+    public const uint TPM_RETURNCMD = 0x100;
+    public const uint MF_BYCOMMAND = 0x0;
+    public const uint MF_ENABLED = 0x0;
+    public const uint MF_GRAYED = 0x1;
+    public const int WM_SYSCOMMAND = 0x0112;
+    public const int SC_MINIMIZE = 0xF020;
+    public const int SC_MAXIMIZE = 0xF030;
+    public const int SC_CLOSE = 0xF060;
+    public const int SC_RESTORE = 0xF120;
+    public const int HTCLIENT = 1;
+    public const int HTCAPTION = 2;
+    public const int HTMINBUTTON = 8;
+    public const int HTMAXBUTTON = 9;
+    public const int HTTOP = 12;
+    public const int HTTOPLEFT = 13;
+    public const int HTTOPRIGHT = 14;
+    public const int HTCLOSE = 20;
+    public const int SM_CYFRAME = 33;
+    public const int SM_CXPADDEDBORDER = 92;
+    public const uint SWP_FRAMECHANGED = 0x20;
+    public const uint TME_LEAVE = 0x2;
+    public const uint TME_NONCLIENT = 0x10;
+    public const uint ABM_GETAUTOHIDEBAREX = 0xB;
+    public const uint ABE_LEFT = 0;
+    public const uint ABE_TOP = 1;
+    public const uint ABE_RIGHT = 2;
+    public const uint ABE_BOTTOM = 3;
     public static readonly Guid GUID_CONSOLE_DISPLAY_STATE = new("6FE69556-704A-47A0-8F24-C28D936FDA47");
     public static readonly Guid GUID_POWER_SAVING_STATUS = new("E00958C0-C213-4ACE-AC77-FECCED2EEEA5");
 
@@ -65,6 +105,15 @@ static class Win32
 
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
     public struct POWERBROADCAST_SETTING { public Guid PowerSetting; public uint DataLength; public uint Data; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NCCALCSIZE_PARAMS { public RECT rgrc0; public RECT rgrc1; public RECT rgrc2; public IntPtr lppos; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TRACKMOUSEEVENT { public uint cbSize; public uint dwFlags; public IntPtr hwndTrack; public uint dwHoverTime; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct APPBARDATA { public uint cbSize; public IntPtr hWnd; public uint uCallbackMessage; public uint uEdge; public RECT rc; public IntPtr lParam; }
 
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
     public delegate void WinEventProc(IntPtr hook, uint evento, IntPtr hWnd, int idOggetto, int idFiglio, uint thread, uint tempo);
@@ -98,4 +147,13 @@ static class Win32
     [DllImport("user32.dll")] public static extern IntPtr SetWinEventHook(uint eventoMin, uint eventoMax, IntPtr modulo, WinEventProc callback, uint processo, uint thread, uint flags);
     [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool UnhookWinEvent(IntPtr hook);
     [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hWnd, uint tipo);
+    [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool IsZoomed(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern int GetSystemMetricsForDpi(int indice, uint dpi);
+    [DllImport("user32.dll")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool TrackMouseEvent(ref TRACKMOUSEEVENT dati);
+    [DllImport("user32.dll", EntryPoint = "PostMessageW")][return: MarshalAs(UnmanagedType.Bool)] public static extern bool PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("shell32.dll")] public static extern IntPtr SHAppBarMessage(uint messaggio, ref APPBARDATA dati);
+    [DllImport("user32.dll")] public static extern IntPtr GetSystemMenu(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool ripristina);
+    [DllImport("user32.dll")] public static extern int EnableMenuItem(IntPtr menu, uint voce, uint flags);
+    [DllImport("user32.dll")] public static extern int TrackPopupMenu(IntPtr menu, uint flags, int x, int y, int riservato, IntPtr hWnd, IntPtr rettangolo);
 }
