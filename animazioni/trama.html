@@ -54,9 +54,9 @@
 <script>
 (function () {
   'use strict';
-  // Parametri: ?velocita=1&passo=132 (distanza tra i marchi su un monitor alto 1080 px)
+  // Parametri: ?velocita=1&distanza=130 (distanza tra i marchi su un monitor alto 1080 px), più i colori (sfondo.js)
   const velocita = Math.max(0.1, Sfondo.parametro('velocita', 1));
-  const passoBase = Math.max(60, Sfondo.parametro('passo', 132));
+  const passoBase = Math.max(60, Sfondo.parametro('distanza', 130));
 
   Sfondo.avvia((s) => {
     const W = s.larghezza;
@@ -66,19 +66,20 @@
     const caso = Sfondo.casuale(20261014);
 
     let html = '';
-    html += '<div class="strato" style="background:linear-gradient(135deg,#0a1729 0%,#0f2240 60%,#132c4d 100%)"></div>';
+    html += '<div class="strato" style="background:linear-gradient(135deg,' + Sfondo.tono('fondo', -3) + ' 0%,' + Sfondo.tono('fondo', 2) + ' 60%,' +
+      Sfondo.tono('fondo', 5) + ' 100%)"></div>';
 
     // Macchie di luce che vagano lente dietro le tessere.
     const luci = [
-      { x: 0.25, y: 0.3, r: 900, c: 'rgba(122,181,42,0.22)', dx: 0.35, dy: 0.25, t: 47 },
-      { x: 0.75, y: 0.7, r: 1100, c: 'rgba(30,91,142,0.55)', dx: -0.4, dy: -0.3, t: 61 },
-      { x: 0.6, y: 0.2, r: 700, c: 'rgba(178,224,104,0.14)', dx: -0.3, dy: 0.45, t: 39 }
+      { x: 0.25, y: 0.3, r: 900, c: Sfondo.rgba('accento', 0.22), dx: 0.35, dy: 0.25, t: 47 },
+      { x: 0.75, y: 0.7, r: 1100, c: Sfondo.rgba('secondario', 0.55), dx: -0.4, dy: -0.3, t: 61 },
+      { x: 0.6, y: 0.2, r: 700, c: Sfondo.rgba('accentoChiaro', 0.14), dx: -0.3, dy: 0.45, t: 39 }
     ];
     luci.forEach((l) => {
       const r = l.r * k;
       html += '<div class="luce" style="left:' + (l.x * W - r).toFixed(0) + 'px;top:' + (l.y * H - r).toFixed(0) +
         'px;width:' + (2 * r).toFixed(0) + 'px;height:' + (2 * r).toFixed(0) + 'px;--dx:' + (l.dx * W).toFixed(0) + 'px;--dy:' + (l.dy * H).toFixed(0) +
-        'px;--durata:' + Math.round(l.t / velocita) + 's;background:radial-gradient(closest-side,' + l.c + ' 0%,rgba(10,23,41,0) 100%)"></div>';
+        'px;--durata:' + Math.round(l.t / velocita) + 's;background:radial-gradient(closest-side,' + l.c + ' 0%,' + Sfondo.rgba(Sfondo.tono('fondo', -3), 0) + ' 100%)"></div>';
     });
 
     // Griglia di marchi: ognuno parte da un orientamento a caso e fa quarti di giro con il suo ritmo.
@@ -93,7 +94,7 @@
         const x = scartoX + c * passo;
         const y = scartoY + r * passo;
         const scelta = caso();
-        const colore = scelta < 0.04 ? 'rgba(178,224,104,0.85)' : scelta < 0.14 ? 'rgba(122,181,42,0.5)' : 'rgba(255,255,255,0.09)';
+        const colore = scelta < 0.04 ? Sfondo.rgba('accentoChiaro', 0.85) : scelta < 0.14 ? Sfondo.rgba('accento', 0.5) : 'rgba(255,255,255,0.09)';
         const quarto = Math.floor(caso() * 4) * 90;
         const durata = (18 + caso() * 22) / velocita;
         const ritardo = -caso() * durata;
@@ -104,7 +105,7 @@
     }
 
     html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1300 * k) + 'px ' + (700 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
-      'px,rgba(10,23,41,0.96) 0%,rgba(10,23,41,0.8) 35%,rgba(10,23,41,0) 72%)"></div>';
+      'px,' + Sfondo.rgba(Sfondo.velo(-3), 0.96) + ' 0%,' + Sfondo.rgba(Sfondo.velo(-3), 0.8) + ' 35%,' + Sfondo.rgba(Sfondo.velo(-3), 0) + ' 72%)"></div>';
     document.getElementById('scena').innerHTML = html;
     Sfondo.posizionaLogo(document.getElementById('logo'), s);
   });
