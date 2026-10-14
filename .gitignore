@@ -6,3 +6,6 @@ publish/
 installer/Output/
 src/EnergyItaly.SfondoAnimato/web/animazioni/
 TestResults/
+
+# Bozze della visual companion
+.superpowers/
