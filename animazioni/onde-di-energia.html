@@ -28,7 +28,8 @@
 <script>
 (function () {
   'use strict';
-  // Parametri: ?durata=80&linee=28
+  // Parametri: ?durata=80&linee=28, più i colori (sfondo.js)
+  const C = Sfondo.colori();
   const durata = Sfondo.parametro('durata', 80);
   const linee = Math.max(4, Math.round(Sfondo.parametro('linee', 28)));
   const GIRO = Math.PI * 2;
@@ -69,21 +70,22 @@
 
     const gradiente =
       '<defs><linearGradient id="ondeColore" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + (2 * P) + '" y2="0">' +
-      '<stop offset="0" stop-color="#2f78b5"/><stop offset="0.25" stop-color="#7AB52A"/><stop offset="0.5" stop-color="#2f78b5"/>' +
-      '<stop offset="0.75" stop-color="#7AB52A"/><stop offset="1" stop-color="#2f78b5"/></linearGradient></defs>';
+      '<stop offset="0" stop-color="' + C.secondarioMedio + '"/><stop offset="0.25" stop-color="' + C.accento + '"/>' +
+      '<stop offset="0.5" stop-color="' + C.secondarioMedio + '"/><stop offset="0.75" stop-color="' + C.accento + '"/>' +
+      '<stop offset="1" stop-color="' + C.secondarioMedio + '"/></linearGradient></defs>';
     const url = 'url(#ondeColore)';
 
     let html = '';
     html += '<div class="strato" style="background:' +
-      'radial-gradient(ellipse ' + (1700 * k) + 'px ' + (700 * k) + 'px at 72% 52%,rgba(122,181,42,0.14) 0%,rgba(122,181,42,0) 70%),' +
-      'radial-gradient(ellipse ' + (1400 * k) + 'px ' + (600 * k) + 'px at 25% 30%,rgba(30,91,142,0.35) 0%,rgba(30,91,142,0) 70%),' +
-      'linear-gradient(180deg,#0c182c 0%,#112743 55%,#163556 100%)"></div>';
-    html += nastro(Math.round(durata * 1.6), traccia(b[1], '#4f8fc4', 1, 0.18) + traccia(b[0], '#4f8fc4', 1.4, 0.4));
+      'radial-gradient(ellipse ' + (1700 * k) + 'px ' + (700 * k) + 'px at 72% 52%,' + Sfondo.rgba('accento', 0.14) + ' 0%,' + Sfondo.rgba('accento', 0) + ' 70%),' +
+      'radial-gradient(ellipse ' + (1400 * k) + 'px ' + (600 * k) + 'px at 25% 30%,' + Sfondo.rgba('secondario', 0.35) + ' 0%,' + Sfondo.rgba('secondario', 0) + ' 70%),' +
+      'linear-gradient(180deg,' + Sfondo.tono('fondo', -2) + ' 0%,' + Sfondo.tono('fondo', 3) + ' 55%,' + C.fondoChiaro + ' 100%)"></div>';
+    html += nastro(Math.round(durata * 1.6), traccia(b[1], C.secondarioChiaro, 1, 0.18) + traccia(b[0], C.secondarioChiaro, 1.4, 0.4));
     html += nastro(durata, gradiente +
       traccia(a[0], url, 12, 0.07) + traccia(a[3], url, 1, 0.18) + traccia(a[2], url, 1.2, 0.35) +
       traccia(a[1], url, 1.6, 0.6) + traccia(a[0], url, 2.2, 0.95));
     html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1300 * k) + 'px ' + (700 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
-      'px,rgba(12,24,44,0.9) 0%,rgba(12,24,44,0) 70%)"></div>';
+      'px,' + Sfondo.rgba(Sfondo.velo(-2), 0.9) + ' 0%,' + Sfondo.rgba(Sfondo.velo(-2), 0) + ' 70%)"></div>';
 
     document.getElementById('scena').innerHTML = html;
     Sfondo.posizionaLogo(document.getElementById('logo'), s);
