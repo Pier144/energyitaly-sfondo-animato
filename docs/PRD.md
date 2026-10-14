@@ -42,7 +42,6 @@ Criterio di successo: sul PC di riferimento (2 monitor 1920x1080) lo sfondo gira
 
 - Finestra impostazioni grafica completa (nell'MVP basta il menu dell'icona più il file JSON).
 - Aggiornamento centralizzato delle animazioni da cartella di rete o URL.
-- Parametri delle singole animazioni modificabili dall'utente.
 - Sfondo diverso per ogni monitor.
 - Animazioni interattive (mouse, orologio, meteo).
 
@@ -92,7 +91,7 @@ Priorità: **M** = obbligatorio nell'MVP, **S** = desiderabile nell'MVP, **F** =
 - **RF-10 (M)** Il motore è WebView2. Le pagine sono servite con `SetVirtualHostNameToFolderMapping` su un host virtuale unico (per esempio `https://sfondo.energyitaly/`), con le cartelle `player/` e `animazioni/` sotto la stessa radice: stessa origine, niente `file://`.
 - **RF-11 (M)** `RasterizationScale` fissato a 1 e rilevamento automatico della scala disattivato, così 1 px CSS = 1 px fisico anche con monitor a DPI diversi. Le animazioni gestiscono già la scala in base all'altezza dei monitor.
 - **RF-12 (M)** Il player (`player/player.html`, parte del programma) carica le animazioni in due iframe sovrapposti e passa da uno all'altro con una dissolvenza (predefinita 2 s), come `animazioni/anteprima.html`. L'iframe uscente viene svuotato (`about:blank`) a dissolvenza finita.
-- **RF-13 (M)** L'URL di ogni animazione = file + parametri del manifest + parametro `monitor` (sezione 6).
+- **RF-13 (M)** L'URL di ogni animazione = file + colori della tavolozza + opzioni effettive (predefinite o personalizzate) + parametro `monitor` (sezione 6).
 - **RF-14 (M)** Il colore di sfondo della pagina del player e della WebView è `#0f1e35`, così non c'è mai un lampo bianco al caricamento.
 - **RF-15 (M)** Se un'animazione non si carica (file mancante, errore), il player passa alla successiva e il programma lo scrive nel log.
 
@@ -173,7 +172,8 @@ Contratto tra il programma (player) e ogni animazione. È già implementato in `
    - `{ "tipo": "layout", "monitor": [{ "x": 0, "y": 7, "w": 1920, "h": 1080 }] }`
 4. **Comportamento richiesto:** al messaggio `layout` l'animazione ricostruisce la scena; alla `pausa` congela tutte le animazioni CSS. Le animazioni future che usano `requestAnimationFrame` o canvas devono fermare il ciclo.
 5. **Logo:** in basso a sinistra del monitor più a sinistra, larghezza 420 px su un monitor alto 1080 px, in scala per altezze diverse (`Sfondo.posizionaLogo`).
-6. **Manifest:** ogni animazione va registrata in `manifest.json` con `id` (stabile, usato nelle impostazioni), `titolo` (mostrato nel menu), `file` e `parametri`.
+6. **Manifest (versione 2):** ogni animazione va registrata in `manifest.json` con `id` (stabile, usato nelle impostazioni), `titolo` (mostrato nel menu), `file` e `opzioni`. Ogni opzione ha `id`, `titolo`, `tipo` (`numero` con `min`, `max`, `passo` e `unita` facoltativa; `scelta` con 2-4 `valori`; `interruttore`) e `predefinito`, che per i numeri deve cadere sul passo. In testa al manifest ci sono le `tavolozze` (`id`, `titolo`, `fondo`, `accento`, `secondario` come `#rrggbb`); la prima è la predefinita. Dettagli: spec `docs/superpowers/specs/2026-10-14-personalizzazione-sfondi-design.md`.
+6a. **Colori e opzioni in ingresso:** query string `fondo`, `accento`, `secondario` (esadecimali senza `#`; con la tavolozza "Personalizzata" manca `secondario`, che `sfondo.js` ricava dal fondo) e una voce per ogni opzione, con i numeri in cultura invariante (punto decimale) e gli interruttori come `1`/`0`. `sfondo.js` offre i ruoli di colore con `Sfondo.colori()`, `Sfondo.tono(ruolo, luce, saturazione)`, `Sfondo.velo(luce)` (il velo scuro dietro il logo) e `Sfondo.rgba(colore, alfa)`, e come variabili CSS (`var(--accento-chiaro)`, `rgba(var(--accento-chiaro-rgb), 0.5)`); gli interruttori si leggono con `Sfondo.interruttore(nome, predefinito)`. Un'animazione non scrive colori fissi tranne il bianco del logo e dei dettagli.
 7. Comunicazione programma-player: `CoreWebView2.PostWebMessageAsJson` verso il player; `window.chrome.webview.postMessage` dal player verso il programma (animazione cambiata, errori). Il player inoltra i messaggi di pausa e layout all'iframe attivo.
 
 ## 7. Requisiti non funzionali
@@ -200,6 +200,7 @@ Componenti (ognuno con un compito solo):
 | `GestorePausa` | Ascolta sessione, alimentazione, display e finestra in primo piano; decide il livello di pausa. Le regole di decisione sono logica pura, testabile. |
 | `Rotazione` | Timer, ordine, elenco attive, ultima mostrata. Logica pura, testabile. |
 | `Impostazioni` | Lettura e scrittura JSON con valori predefiniti e validazione. |
+| `Personalizzazioni` | Regole pure delle personalizzazioni degli sfondi: validazione, unione con i predefiniti, URL con colori e opzioni, modo dei monitor e riempimento effettivi. |
 | `IconaNotifica` | Menu, suggerimento, azioni. |
 | `player/player.html` | Iframe doppi, dissolvenza, inoltro messaggi; parte da `animazioni/anteprima.html`. |
 
