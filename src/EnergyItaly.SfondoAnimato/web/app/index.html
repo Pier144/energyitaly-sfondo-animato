@@ -28,6 +28,7 @@
             <button type="button" class="pillola" data-modo="estendi">Estendi</button>
             <button type="button" class="pillola" data-modo="duplica">Duplica</button>
           </div>
+          <span class="nota-modo" id="nota-modo-palco" hidden>Scelto per questo sfondo nella Libreria</span>
         </div>
         <div id="monitor-riga"></div>
       </div>
@@ -86,7 +87,7 @@
         <button type="button" class="bottone-verde" id="btn-importa"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>Importa file</button>
       </div>
     </div>
-    <div class="griglia" id="griglia"></div>
+    <div class="libreria-corpo"><div class="griglia" id="griglia"></div></div>
   </section>
 
   <section id="vista-impostazioni" class="vista impostazioni" aria-labelledby="titolo-impostazioni" hidden>
@@ -166,7 +167,7 @@
           <button type="button" class="bottone-contorno" id="btn-log">Apri cartella</button>
         </div>
         <div class="riga-imp">
-          <div class="testi"><strong>Ripristina impostazioni aziendali</strong><span class="tenue">Intervallo, ordine, monitor e opzioni tornano alle scelte dell'IT. La libreria resta com'è.</span></div>
+          <div class="testi"><strong>Ripristina impostazioni aziendali</strong><span class="tenue">Intervallo, ordine, monitor, opzioni e personalizzazioni degli sfondi tornano alle scelte dell'IT. La libreria resta com'è.</span></div>
           <button type="button" class="bottone-contorno" id="btn-ripristina">Ripristina</button>
         </div>
       </div>
@@ -187,6 +188,7 @@
   </div>
 </div>
 
+<script src="barra.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

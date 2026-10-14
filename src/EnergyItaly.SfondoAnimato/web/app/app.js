@@ -149,7 +149,7 @@
   // ---------- Miniature ----------
   function miniatura(contesto, v) {
     const chiave = contesto + '|' + v.id;
-    const firma = v.url + '|' + v.disponibile;
+    const firma = v.url + '|' + v.disponibile + '|' + v.riempimento;
     const memo = cacheMiniature.get(chiave);
     if (memo && memo.firma === firma) return memo.nodo;
 
@@ -165,17 +165,25 @@
       nodo.append(f);
       inScala(nodo, f, 1920, 1080);
     } else if (v.tipoVoce === 'immagine') {
-      nodo.append(el('img', { src: v.url, alt: '', loading: 'lazy' }));
+      nodo.append(riempi(el('img', { src: v.url, alt: '', loading: 'lazy' }), v, nodo));
     } else if (v.tipoVoce === 'video') {
       const video = el('video', { preload: 'metadata', playsinline: true, muted: true });
       video.muted = true;
       video.src = v.url + '#t=1';
-      nodo.append(video);
+      nodo.append(riempi(video, v, nodo));
     } else {
       nodo.append(el('div', { class: 'segnaposto codice' }, icona('codice', 36)));
     }
     cacheMiniature.set(chiave, { nodo, firma, id: v.id });
     return nodo;
+  }
+
+  // Immagini e video come sul desktop: "adatta" li mostra interi su fondo nero (spec personalizzazione P6).
+  function riempi(media, v, contenitore) {
+    const adatta = v.riempimento === 'adatta';
+    media.style.objectFit = adatta ? 'contain' : 'cover';
+    if (adatta && contenitore) contenitore.style.background = '#000';
+    return media;
   }
 
   function potaCache() {
@@ -229,7 +237,15 @@
 
   function aggiornaModo() {
     const uno = stato.monitor.length < 2;
-    document.querySelectorAll('[data-modo]').forEach((b) => {
+    const v = voce(stato.corrente);
+    // Uno sfondo con una scelta sua si cambia dalla Libreria (spec personalizzazione 4.7, "Pagina In onda").
+    const suo = !!(v && v.personalizzazione && v.personalizzazione.modoMonitor);
+    document.querySelectorAll('#modo-palco [data-modo]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.modo === stato.modo));
+      b.disabled = uno || suo;
+    });
+    $('#nota-modo-palco').hidden = uno || !suo;
+    document.querySelectorAll('.riga-imp [data-modo]').forEach((b) => {
       b.setAttribute('aria-pressed', String(b.dataset.modo === stato.impostazioni.modoMonitor));
       b.disabled = uno;
     });
@@ -240,7 +256,7 @@
     $('#modo-palco').hidden = stato.monitor.length < 2;
     aggiornaModo();
     const v = voce(stato.corrente);
-    const chiave = JSON.stringify([stato.corrente, v && v.url, v && v.disponibile, stato.modo, stato.finestra, stato.monitor, stato.scene]);
+    const chiave = JSON.stringify([stato.corrente, v && v.url, v && v.disponibile, v && v.riempimento, stato.modo, stato.finestra, stato.monitor, stato.scene]);
     const contenitore = $('#monitor-riga');
     if (chiave !== chiavePalco) {
       chiavePalco = chiave;
@@ -272,12 +288,12 @@
   }
 
   function contenutoScena(v, s, box) {
-    if (v.tipoVoce === 'immagine') return el('img', { src: v.url, alt: '' });
+    if (v.tipoVoce === 'immagine') return riempi(el('img', { src: v.url, alt: '' }), v, box);
     if (v.tipoVoce === 'video') {
       const video = el('video', { autoplay: true, loop: true, playsinline: true, muted: true });
       video.muted = true;
       video.src = v.url;
-      return video;
+      return riempi(video, v, box);
     }
     const f = el('iframe', { title: 'Anteprima dello sfondo in onda', tabindex: '-1', 'aria-hidden': 'true' });
     if (v.tipoVoce === 'html') f.setAttribute('sandbox', 'allow-scripts');
@@ -557,7 +573,17 @@
 
   function creaSchedaLibreria(id) {
     const badge = el('span', { class: 'badge-sovrapposto' }, el('span', { class: 'puntino-verde' }), 'IN ONDA');
-    const anteprima = el('button', { type: 'button', class: 'anteprima-bottone grande', onclick: () => ponte.invia({ tipo: 'mostra', id }) });
+    const personalizzato = el('span', { class: 'etichetta-personalizzato' }, 'PERSONALIZZATO');
+    const anteprima = el('button', {
+      type: 'button', class: 'anteprima-bottone grande',
+      onclick: () => {
+        if (barraSfondo.idAperto() === id) barraSfondo.chiudi();
+        else {
+          barraSfondo.apri(id);
+          renderLibreria();
+        }
+      }
+    });
     const titolo = el('span', { class: 'voce-titolo' });
     const meta = el('span', { class: 'voce-meta' });
     const azioni = el('div', { class: 'azioni-scheda' });
@@ -568,13 +594,15 @@
       aggiorna(v) {
         const inPlaylist = stato.playlist.includes(v.id);
         const inOnda = v.id === stato.corrente;
+        const aperta = barraSfondo.idAperto() === v.id;
         nodo.className = 'scheda-libreria' + (v.disponibile ? '' : ' non-disponibile');
-        anteprima.className = 'anteprima-bottone grande' + (inOnda ? ' in-onda' : '');
-        anteprima.setAttribute('aria-label', `Mostra ${v.titolo} ora sul desktop`);
-        anteprima.disabled = !v.disponibile;
+        anteprima.className = 'anteprima-bottone grande' + (inOnda ? ' in-onda' : '') + (aperta ? ' scelta' : '');
+        anteprima.setAttribute('aria-label', `Personalizza ${v.titolo}`);
+        anteprima.setAttribute('aria-expanded', String(aperta));
         const m = miniatura('libreria', v);
-        if (anteprima.firstElementChild !== m) anteprima.replaceChildren(m, badge);
+        if (anteprima.firstElementChild !== m) anteprima.replaceChildren(m, badge, personalizzato);
         badge.hidden = !inOnda;
+        personalizzato.hidden = !v.personalizzazione;
         titolo.textContent = v.titolo;
         meta.textContent = v.disponibile ? descrizione(v) : 'File non trovato';
         const bottoni = [];
@@ -614,7 +642,7 @@
       b.setAttribute('aria-pressed', String(b.dataset.filtro === filtro));
       b.querySelector('.conteggio').textContent = conteggi[b.dataset.filtro];
     });
-    $('#nota-libreria').textContent = `${tutte.length} sfondi, ${stato.playlist.length} nella playlist. Clicca un'anteprima per mostrarla subito.`;
+    $('#nota-libreria').textContent = `${tutte.length} sfondi, ${stato.playlist.length} nella playlist. Clicca uno sfondo per personalizzarlo.`;
     const visibili = tutte.filter((v) => filtro === 'tutti' || (filtro === 'miei' ? !v.aziendale : v.aziendale));
     const nodi = visibili.map((v) => {
       let memo = schedeLibreria.get(v.id);
@@ -630,6 +658,7 @@
       nodi.push(zonaImport);
     }
     riconcilia($('#griglia'), nodi);
+    barraSfondo.aggiorna(stato);
   }
 
   function contieneFile(e) {
@@ -668,9 +697,10 @@
     }, String(i + 1))));
     $('#descrizione-modo').textContent = n === 1
       ? 'Con un solo monitor lo sfondo lo riempie e basta.'
-      : imp.modoMonitor === 'estendi'
-        ? "Estendi: un'unica scena attraversa tutti i monitor, logo solo su quello più a sinistra."
-        : 'Duplica: la stessa scena intera su ogni monitor, ognuna con il suo logo.';
+      : (imp.modoMonitor === 'estendi'
+          ? "Estendi: un'unica scena attraversa tutti i monitor, logo solo su quello più a sinistra."
+          : 'Duplica: la stessa scena intera su ogni monitor, ognuna con il suo logo.') +
+          ' Ogni sfondo può avere la sua scelta nella Libreria.';
     document.querySelectorAll('[data-dissolvenza]').forEach((b) =>
       b.setAttribute('aria-pressed', String(Number(b.dataset.dissolvenza) === imp.dissolvenzaSecondi)));
     $('#sw-fine-video').setAttribute('aria-checked', String(imp.fineVideo));
@@ -789,6 +819,7 @@
     $('#conferma').addEventListener('click', (e) => { if (e.target === e.currentTarget) chiudiConferma(); });
     collegaIntervallo();
     collegaTrascinamentoFile();
+    $('.libreria-corpo').append(barraSfondo.nodo);
   }
 
   ponte.ascolta((m) => {
@@ -802,6 +833,18 @@
     } else if (m.tipo === 'aggiornamenti') {
       aggiornamenti = m;
       renderAggiornamenti();
+    }
+  });
+
+  // Barra laterale della Libreria (barra.js). "barra" è già il nome della barra di avanzamento nella playlist.
+  const barraSfondo = window.BarraSfondo({
+    el, icona, miniatura,
+    invia: (m) => ponte.invia(m),
+    alChiudere: (id) => {
+      renderLibreria();
+      const memo = schedeLibreria.get(id);
+      const scheda = memo && memo.nodo.isConnected && memo.nodo.querySelector('.anteprima-bottone');
+      (scheda && scheda.offsetParent !== null ? scheda : $('#btn-importa')).focus();
     }
   });
 

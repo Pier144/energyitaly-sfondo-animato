@@ -162,6 +162,48 @@ body { display: flex; flex-direction: column; }
 .zona-import strong { color: var(--testo); }
 .zona-import svg { color: var(--verde-chiaro); }
 
+/* Libreria: barra laterale (spec personalizzazione 4.7) */
+.libreria-corpo { display: flex; align-items: flex-start; gap: 24px; }
+.libreria-corpo .griglia { flex: 1; min-width: 0; }
+.anteprima-bottone.scelta { outline: 3px solid var(--verde-chiaro); outline-offset: 2px; }
+.etichetta-personalizzato { position: absolute; top: 8px; right: 8px; padding: 4px 9px; border-radius: 12px; background: rgba(7, 17, 31, .85); color: var(--verde-chiaro); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .06em; }
+.pannello-sfondo { position: sticky; top: 12px; flex: none; display: flex; flex-direction: column; width: 400px; max-height: calc(100vh - 196px); border: 1px solid var(--bordo-forte); border-radius: 16px; background: var(--superficie); }
+.pannello-testa { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 10px; }
+.pannello-testa h3 { margin: 0; font-size: 20px; font-weight: 800; overflow-wrap: anywhere; }
+.pannello-testa .tenue { font-size: 12px; }
+.pannello-corpo { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding: 0 20px 20px; }
+.pannello-palco { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--bordo); border-radius: 10px; background: var(--scena); }
+.pannello-palco img, .pannello-palco video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pannello-palco .adatta { object-fit: contain; background: #000; }
+.pannello-palco .miniatura { height: 100%; }
+.nota-anteprima { margin: 6px 0 0; }
+.gruppo-pannello { display: flex; flex-direction: column; gap: 10px; }
+.gruppo-pannello h4 { margin: 0; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; color: var(--tenue); }
+.tavolozze { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tavolozza { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 8px; border: 1px solid var(--bordo-forte); border-radius: 10px; background: transparent; color: var(--tenue-chiaro); font-size: 12px; font-weight: 600; text-align: left; cursor: pointer; }
+.tavolozza[aria-pressed="true"] { border-color: var(--verde-chiaro); background: rgba(122, 181, 42, .08); color: var(--testo); }
+.tavolozza:disabled, .colore input:disabled { opacity: .45; cursor: default; }
+.campione { flex: none; width: 22px; height: 22px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 11px; }
+.campione.arcobaleno { background: conic-gradient(#f05a5a, #f0d04c, #5ad07a, #4a90c8, #b05ad0, #f05a5a); }
+.colori-liberi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.colore { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--bordo-forte); border-radius: 10px; color: var(--tenue); font-size: 12px; cursor: pointer; }
+.colore input { width: 32px; height: 32px; padding: 0; border: 0; background: none; cursor: pointer; }
+.colore b { display: block; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--testo); }
+.opzione { display: flex; flex-direction: column; gap: 8px; }
+.opzione-testa, .opzione-riga { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 600; }
+.opzione-testa output { font-family: var(--mono); font-size: 12px; color: var(--verde-chiaro); }
+.opzione input[type=range] { width: 100%; accent-color: var(--verde); }
+.gruppo-pannello .segmentato { background: var(--fondo); }
+.gruppo-pannello .pillola { flex: 1; justify-content: center; }
+.spiega { margin: 0; font-size: 12px; line-height: 1.45; color: var(--tenue); }
+.pannello-piede { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--bordo); }
+.pannello-piede button { flex: 1; justify-content: center; margin: 0; }
+.pannello-piede button:disabled { opacity: .45; cursor: default; }
+.nota-modo { flex-basis: 100%; text-align: right; font-size: 12px; color: var(--tenue); }
+@media (max-width: 899px) {
+  .pannello-sfondo { position: fixed; top: 76px; right: 12px; bottom: 12px; z-index: 15; max-height: none; width: min(400px, calc(100vw - 24px)); box-shadow: -18px 0 40px rgba(0, 0, 0, .45); }
+}
+
 /* Impostazioni */
 .impostazioni { max-width: 860px; gap: 28px; }
 .gruppo-imp { display: flex; flex-direction: column; gap: 10px; }
