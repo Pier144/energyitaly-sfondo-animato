@@ -18,7 +18,7 @@
   <span class="stato-app"><span class="puntino" aria-hidden="true"></span><span id="testo-stato">AVVIO</span></span>
 </header>
 
-<main class="contenuto">
+<div class="scorrimento"><main class="contenuto">
   <section id="vista-onda" class="vista" aria-label="In onda">
     <div class="riga-onda">
       <div class="palco">
@@ -32,34 +32,16 @@
         <div id="monitor-riga"></div>
       </div>
       <div class="pannello-onda">
-        <span class="etichetta-onda"><span class="puntino" aria-hidden="true"></span><span id="etichetta-onda-testo">IN ONDA</span></span>
+        <span class="etichetta-onda"><span class="puntino" aria-hidden="true"></span>IN PAUSA</span>
         <div>
           <h1 id="titolo-corrente"></h1>
           <p class="tenue" id="posizione-corrente"></p>
         </div>
         <div class="conto">
-          <div class="conto-riga"><span class="tempo" id="tempo">--:--</span><span class="tenue" id="nota-tempo"></span></div>
-          <div class="barra"><div id="barra-avanzamento"></div></div>
-        </div>
-        <div class="comandi">
-          <button type="button" class="tondo" id="btn-precedente" aria-label="Sfondo precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5l-9 7 9 7z"/><path d="M6 5v14"/></svg></button>
-          <button type="button" class="tondo primario" id="btn-pausa" aria-label="Pausa"></button>
-          <button type="button" class="tondo" id="btn-successivo" aria-label="Sfondo successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5l9 7-9 7z"/><path d="M18 5v14"/></svg></button>
-        </div>
-        <div class="poi" id="poi"></div>
-      </div>
-    </div>
-
-    <section class="playlist" aria-labelledby="titolo-playlist">
-      <div class="playlist-testa">
-        <div>
-          <h2 id="titolo-playlist">Playlist</h2>
-          <p class="tenue" id="nota-playlist"></p>
-        </div>
-        <div class="controlli-playlist">
-          <div class="riga-controlli">
+          <div class="conto-riga">
+            <span class="tempo" id="tempo">--:--</span><span class="tenue" id="nota-tempo"></span>
             <div class="gruppo-intervallo" id="gruppo-intervallo" role="group" aria-label="Cambio sfondo">
-              <label for="intervallo-valore" class="mini">CAMBIA OGNI</label>
+              <label for="intervallo-valore" class="tenue">ogni</label>
               <input id="intervallo-valore" type="number" min="1" step="1" inputmode="numeric" aria-describedby="intervallo-errore">
               <label for="intervallo-unita" class="nascosto">Unità di tempo</label>
               <select id="intervallo-unita">
@@ -68,17 +50,24 @@
               </select>
               <button type="button" class="pillola" id="btn-mai" aria-pressed="false" title="Cambia sfondo solo a mano">Mai</button>
             </div>
-            <div class="segmentato" role="group" aria-label="Ordine">
-              <button type="button" class="pillola" data-ordine="sequenziale">In ordine</button>
-              <button type="button" class="pillola" data-ordine="casuale"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>Casuale</button>
-            </div>
           </div>
+          <div class="barra"><div id="barra-avanzamento"></div></div>
           <span id="intervallo-errore" class="errore" role="alert" hidden></span>
-          <div class="riga-interruttore">
-            <button type="button" role="switch" class="interruttore" id="sw-fine-video-playlist" aria-checked="true" aria-labelledby="etichetta-fine-video"><span></span></button>
-            <span id="etichetta-fine-video">I video cambiano a fine riproduzione</span>
-          </div>
         </div>
+        <div class="comandi">
+          <button type="button" class="tondo casuale" id="btn-casuale" aria-label="Ordine casuale" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></button>
+          <button type="button" class="tondo" id="btn-precedente" aria-label="Sfondo precedente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 5l-9 7 9 7z"/><path d="M6 5v14"/></svg></button>
+          <button type="button" class="tondo primario" id="btn-pausa" aria-label="Pausa"></button>
+          <button type="button" class="tondo" id="btn-successivo" aria-label="Sfondo successivo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5l9 7-9 7z"/><path d="M18 5v14"/></svg></button>
+          <div class="poi" id="poi"></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="playlist" aria-labelledby="titolo-playlist">
+      <div class="playlist-testa">
+        <h2 id="titolo-playlist">Playlist</h2>
+        <p class="tenue" id="nota-playlist"></p>
       </div>
       <div class="striscia" id="striscia"></div>
     </section>
@@ -174,7 +163,7 @@
       </div>
     </div>
   </section>
-</main>
+</main></div>
 
 <div class="avviso" id="avviso" role="status" hidden></div>
 

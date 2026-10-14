@@ -200,14 +200,10 @@
     aggiornaConto();
   }
 
-  function testoStato() {
-    if (stato.inPausa) return stato.motivoPausa ? 'IN PAUSA: ' + stato.motivoPausa : 'IN PAUSA';
-    const n = stato.monitor.length;
-    return n === 1 ? 'ATTIVO SU 1 MONITOR' : `ATTIVO SU ${n} MONITOR`;
-  }
-
   function renderTestata() {
-    $('#testo-stato').textContent = testoStato();
+    // Lo stato si mostra solo in pausa: "attivo" è la condizione normale e non serve dirlo.
+    $('#testo-stato').textContent = stato.motivoPausa ? 'IN PAUSA: ' + stato.motivoPausa : 'IN PAUSA';
+    $('.stato-app').hidden = !stato.inPausa;
     document.querySelectorAll('.scheda').forEach((b) => {
       if (b.dataset.scheda === scheda) b.setAttribute('aria-current', 'page');
       else b.removeAttribute('aria-current');
@@ -218,14 +214,15 @@
   function apriScheda(nome) {
     scheda = nome;
     render();
+    $('.scorrimento').scrollTop = 0;
   }
 
   function didascalia() {
     const n = stato.monitor.length;
     const f = stato.finestra;
-    if (n === 1) return `IL TUO DESKTOP ADESSO  /  1 MONITOR  /  ${f.w} x ${f.h} px`;
-    if (stato.modo === 'estendi') return `IL TUO DESKTOP ADESSO  /  ${n} MONITOR ESTESI  /  ${f.w} x ${f.h} px`;
-    return `IL TUO DESKTOP ADESSO  /  STESSA SCENA SU ${n} MONITOR`;
+    if (n === 1) return `IL TUO DESKTOP · 1 MONITOR · ${f.w}x${f.h}`;
+    if (stato.modo === 'estendi') return `IL TUO DESKTOP · ${n} MONITOR ESTESI · ${f.w}x${f.h}`;
+    return `IL TUO DESKTOP · STESSA SCENA SU ${n} MONITOR`;
   }
 
   function aggiornaModo() {
@@ -269,7 +266,7 @@
     const etichette = el('div', { class: 'etichette-monitor' });
     stato.monitor.forEach((m) => etichette.append(el('span', { style: `left: ${(m.x / W) * 100}%; width: ${(m.w / W) * 100}%` },
       `${m.nome}  ${m.w}x${m.h}${m.principale ? '  PRINCIPALE' : ''}`)));
-    return el('div', { class: 'palco-schermi' }, schermi, etichette);
+    return el('div', { class: 'palco-schermi', style: `--rapporto: ${W / H}` }, schermi, etichette);
   }
 
   function contenutoScena(v, s, box) {
@@ -314,7 +311,7 @@
 
   function renderPannello() {
     const v = voce(stato.corrente);
-    $('#etichetta-onda-testo').textContent = stato.inPausa ? 'IN PAUSA' : 'IN ONDA';
+    $('.etichetta-onda').hidden = !stato.inPausa;
     $('#titolo-corrente').textContent = v ? v.titolo : 'Nessuno sfondo';
     const pos = v ? stato.playlist.indexOf(v.id) : -1;
     $('#posizione-corrente').textContent = !v ? '' :
@@ -369,9 +366,8 @@
     unita.disabled = !imp.rotazioneAttiva;
     $('#gruppo-intervallo').classList.toggle('spento', !imp.rotazioneAttiva);
     $('#btn-mai').setAttribute('aria-pressed', String(!imp.rotazioneAttiva));
-    document.querySelectorAll('[data-ordine]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ordine === imp.ordine)));
-    $('#sw-fine-video-playlist').setAttribute('aria-checked', String(imp.fineVideo));
-    $('#nota-playlist').textContent = `Trascina per cambiare l'ordine, clicca un'anteprima per mostrarla subito. Dissolvenza di ${imp.dissolvenzaSecondi} s.`;
+    $('#nota-playlist').textContent = `Trascina per cambiare l'ordine, clicca un'anteprima per mostrarla subito.`;
+    $('#btn-casuale').setAttribute('aria-pressed', String(imp.ordine === 'casuale'));
   }
 
   function validaValore() {
@@ -717,11 +713,10 @@
     $('#btn-successivo').addEventListener('click', () => ponte.invia({ tipo: 'successivo' }));
     $('#btn-pausa').addEventListener('click', conStato(() => ponte.invia({ tipo: stato.pausaManuale ? 'riprendi' : 'pausa' })));
     document.querySelectorAll('[data-modo]').forEach((b) => b.addEventListener('click', () => modifica({ modoMonitor: b.dataset.modo })));
-    document.querySelectorAll('[data-ordine]').forEach((b) => b.addEventListener('click', () => modifica({ ordine: b.dataset.ordine })));
     document.querySelectorAll('[data-dissolvenza]').forEach((b) => b.addEventListener('click', () => modifica({ dissolvenzaSecondi: Number(b.dataset.dissolvenza) })));
+    $('#btn-casuale').addEventListener('click', conStato(() => modifica({ ordine: stato.impostazioni.ordine === 'casuale' ? 'sequenziale' : 'casuale' })));
     $('#btn-mai').addEventListener('click', conStato(() => modifica({ rotazioneAttiva: !stato.impostazioni.rotazioneAttiva })));
     const fineVideo = conStato(() => modifica({ fineVideo: !stato.impostazioni.fineVideo }));
-    $('#sw-fine-video-playlist').addEventListener('click', fineVideo);
     $('#sw-fine-video').addEventListener('click', fineVideo);
     $('#sw-batteria').addEventListener('click', conStato(() => modifica({ pausaABatteria: !stato.impostazioni.pausaABatteria })));
     $('#sw-avvio').addEventListener('click', conStato(() => modifica({ avvioConWindows: !stato.impostazioni.avvioConWindows })));
