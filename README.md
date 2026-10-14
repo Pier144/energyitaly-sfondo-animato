@@ -31,7 +31,9 @@ Prove delle pagine web nel browser: `python strumenti/server_sviluppo.py` e poi 
 "$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe" installer/SfondoAnimato.iss
 ```
 
-Installazione silenziosa sui PC aziendali: `EnergyItaly-SfondoAnimato-1.0.0-setup.exe /VERYSILENT /SUPPRESSMSGBOXES`.
+Serve Inno Setup 6.7 o successivo, mai più vecchio di quello usato per le release già pubblicate (spec `2026-10-14-disinstallatore-design`, U7). Il logo delle schermate del disinstallatore si rigenera con `python strumenti/genera_logo_installer.py`.
+
+Installazione silenziosa sui PC aziendali: `EnergyItaly-SfondoAnimato-1.0.0-setup.exe /VERYSILENT /SUPPRESSMSGBOXES`. Disinstallazione silenziosa: `"%LOCALAPPDATA%\Programs\Energy Italy Sfondo Animato\unins000.exe" /VERYSILENT` (aggiungere `/CONSERVA=1` per tenere impostazioni e sfondi importati).
 
 Le impostazioni predefinite aziendali stanno in `impostazioni-predefinite.json` accanto all'eseguibile. Ogni aggiornamento lo sostituisce con quello del repository: i valori predefiniti si cambiano qui, non a mano sui PC.
 

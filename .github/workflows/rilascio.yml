@@ -50,9 +50,12 @@ jobs:
       - name: Installer
         run: |
           # ISCC.exe non è nel PATH: si cerca nella cartella di Inno Setup, installandolo (versione fissata) se manca.
+          # La versione non deve mai scendere sotto quella delle release già pubblicate (la 1.2.0 è della 6.7.1):
+          # sui PC resta il disinstallatore più recente, che ignora il [Code] scritto da un Inno più vecchio, e
+          # Impostazioni > App lo lancerebbe con /SILENT senza la schermata di conferma.
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) {
-            choco install innosetup --version=6.4.3 -y --no-progress
+            choco install innosetup --version=6.7.1 -y --no-progress
             if ($LASTEXITCODE -ne 0) { throw "Installazione di Inno Setup non riuscita" }
             $iscc = @(Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue)[0].FullName
             if (-not $iscc) { throw "ISCC.exe non trovato dopo l'installazione di Inno Setup" }
