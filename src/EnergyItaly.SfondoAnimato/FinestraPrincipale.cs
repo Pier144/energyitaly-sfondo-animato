@@ -21,15 +21,18 @@ sealed class FinestraPrincipale : Form
     HostWebView web;
     readonly Action<string> daApp;
     readonly Action<IReadOnlyList<string>> importa;
+    readonly Action<string> aggiornamenti;
     bool inizializzata;
     bool chiusuraDefinitiva;
     readonly Queue<DateTime> crash = new();
 
-    public FinestraPrincipale(ILog log, Icon icona, Action<string> daApp, Action<IReadOnlyList<string>> importa)
+    /// <param name="aggiornamenti">Comandi per l'aggiornatore: "controlla", "installa", "pronta".</param>
+    public FinestraPrincipale(ILog log, Icon icona, Action<string> daApp, Action<IReadOnlyList<string>> importa, Action<string> aggiornamenti)
     {
         this.log = log;
         this.daApp = daApp;
         this.importa = importa;
+        this.aggiornamenti = aggiornamenti;
         web = CreaWebView();
         Text = "Energy Italy Sfondo Animato";
         Icon = icona;
@@ -194,6 +197,9 @@ sealed class FinestraPrincipale : Form
         base.OnFormClosing(e);
     }
 
+    /// <summary>L'utente la sta guardando: visibile e non ridotta a icona.</summary>
+    public bool Vista => Visible && WindowState != FormWindowState.Minimized;
+
     public void MostraInPrimoPiano()
     {
         if (!Visible) Show();
@@ -236,6 +242,17 @@ sealed class FinestraPrincipale : Form
                 case "importaFile":
                     var percorsi = e.AdditionalObjects?.OfType<CoreWebView2File>().Select(f => f.Path).ToList() ?? [];
                     importa(percorsi);
+                    break;
+                case "controllaAggiornamenti":
+                    aggiornamenti("controlla");
+                    break;
+                case "installaAggiornamento":
+                    aggiornamenti("installa");
+                    break;
+                case "pronta":
+                    // Lo stato lo manda il coordinatore, la riga "Versione" l'aggiornatore.
+                    daApp(json);
+                    aggiornamenti("pronta");
                     break;
                 default:
                     daApp(json);

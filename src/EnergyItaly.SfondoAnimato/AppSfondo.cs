@@ -22,11 +22,13 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
     readonly FinestraMessaggi messaggi;
     readonly GestorePausa pausa;
     readonly Coordinatore coord;
+    readonly Aggiornatore aggiornatore;
     readonly System.Windows.Forms.Timer orologio = new() { Interval = 1000 };
     readonly System.Windows.Forms.Timer ritardoMonitor = new() { Interval = 600 };
     readonly System.Windows.Forms.Timer ricreazione = new() { Interval = 2000 };
     readonly Queue<DateTime> crash = new();
-    readonly RegisteredWaitHandle attesaApri;
+    // null solo se all'avvio parte un aggiornamento e il programma esce subito.
+    readonly RegisteredWaitHandle? attesaApri;
     FinestraSfondo? sfondo;
     FinestraPrincipale? principale;
     Rettangolo area = new(0, 0, 1920, 1080);
@@ -47,6 +49,16 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
         desktop = new DesktopHost(log);
         iconaApp = CaricaIcona();
         icona = new IconaNotifica(iconaApp);
+
+        // Prima del coordinatore: all'avvio chiama ImpostaAggiornamentiAutomatici.
+        aggiornatore = new Aggiornatore(log, () => Aggiornamenti.MomentoBuono(segnali, FinestraVista));
+        aggiornatore.Cambiato += InviaAggiornamenti;
+        aggiornatore.InstallazioneAvviata += () => contesto.Post(_ =>
+        {
+            log.Info("Uscita per aggiornamento");
+            Esci();
+        }, null);
+        SystemEvents.SessionEnding += SessioneInChiusura;
 
         var manifest = File.ReadAllText(Percorsi.Manifest);
         var predefinite = File.Exists(Percorsi.PredefiniteAziendali) ? File.ReadAllText(Percorsi.PredefiniteAziendali) : null;
@@ -71,6 +83,7 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
         messaggi.ChiusuraRichiesta += () =>
         {
             log.Info("Chiusura richiesta da Windows o dall'installer");
+            aggiornatore.SessioneInChiusura();
             Esci();
         };
         pausa = new GestorePausa(messaggi);
@@ -78,6 +91,7 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
         {
             segnali = nuovi;
             InviaSegnali();
+            aggiornatore.Valuta();
         };
 
         SystemEvents.DisplaySettingsChanged += MonitorCambiati;
@@ -94,7 +108,18 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
         };
 
         coord.Avvia(LettoreMonitor.Leggi());
-        orologio.Tick += (_, _) => coord.Tick();
+        // Aggiornamento scaricato in una sessione precedente: all'accesso a Windows si installa prima di
+        // mostrare lo sfondo (A5). L'uscita va in coda: parte appena Application.Run avvia il ciclo dei messaggi.
+        if (aggiornatore.AllAvvio(avvioAutomatico: !apriFinestra))
+        {
+            contesto.Post(_ => Esci(), null);
+            return;
+        }
+        orologio.Tick += (_, _) =>
+        {
+            coord.Tick();
+            aggiornatore.Tick();
+        };
         orologio.Start();
         pausa.Valuta();
         _ = CreaSfondoAsync();
@@ -202,9 +227,34 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
     {
         if (uscita) return;
         if (principale is null || principale.IsDisposed)
-            principale = new FinestraPrincipale(log, iconaApp, json => coord.DaApp(json), Importa);
+        {
+            principale = new FinestraPrincipale(log, iconaApp, json => coord.DaApp(json), Importa, ComandoAggiornamenti);
+            // Chiusa o ridotta a icona: l'aggiornatore può contare su un momento buono (A4).
+            principale.VisibleChanged += (_, _) => aggiornatore.Valuta();
+            principale.Resize += (_, _) => aggiornatore.Valuta();
+        }
         principale.MostraInPrimoPiano();
     }
+
+    bool FinestraVista => principale is { IsDisposed: false } p && p.Vista;
+
+    void InviaAggiornamenti() => principale?.Invia(aggiornatore.MessaggioVista());
+
+    async void ComandoAggiornamenti(string tipo)
+    {
+        try
+        {
+            switch (tipo)
+            {
+                case "controlla": await aggiornatore.ControllaAsync(); break;
+                case "installa": aggiornatore.InstallaOra(); break;
+                case "pronta": InviaAggiornamenti(); break;
+            }
+        }
+        catch (Exception ex) { log.Errore($"Aggiornamento: comando '{tipo}' non riuscito: {ex.Message}"); }
+    }
+
+    void SessioneInChiusura(object? mittente, SessionEndingEventArgs e) => aggiornatore.SessioneInChiusura();
 
     async void Importa(IReadOnlyList<string> percorsi)
     {
@@ -225,7 +275,7 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
 #endif
     }
 
-    public void ImpostaAggiornamentiAutomatici(bool attivo) { }
+    public void ImpostaAggiornamentiAutomatici(bool attivo) => aggiornatore.ImpostaAutomatici(attivo);
 
     public void ApriCartellaLog()
     {
@@ -250,12 +300,14 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
         orologio.Stop();
         ricreazione.Stop();
         ritardoMonitor.Stop();
-        attesaApri.Unregister(null);
+        attesaApri?.Unregister(null);
         SystemEvents.DisplaySettingsChanged -= MonitorCambiati;
+        SystemEvents.SessionEnding -= SessioneInChiusura;
         pausa.Dispose();
         messaggi.Dispose();
         principale?.ChiudiDefinitivamente();
         DistruggiSfondo(ridisegna: true);
+        aggiornatore.Dispose();
         icona.Dispose();
         ExitThread();
     }
