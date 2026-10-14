@@ -16,6 +16,8 @@ sealed class FinestraPrincipale : Form
 
     readonly ILog log;
     readonly BarraTitoloFinestra barra;
+    // Creato una volta: WndProc passa da qui per ogni messaggio della finestra.
+    readonly BarraTitoloFinestra.ProceduraStandard standard;
     HostWebView web;
     readonly Action<string> daApp;
     readonly Action<IReadOnlyList<string>> importa;
@@ -33,6 +35,7 @@ sealed class FinestraPrincipale : Form
         Icon = icona;
         BackColor = Fondo;
         StartPosition = FormStartPosition.CenterScreen;
+        standard = ProceduraStandard;
         barra = new BarraTitoloFinestra(this, icona, Text);
         DoubleBuffered = true;
         SystemEvents.UserPreferenceChanged += PreferenzeCambiate;
@@ -41,7 +44,7 @@ sealed class FinestraPrincipale : Form
     protected override void WndProc(ref Message m)
     {
         // barra è null solo se Windows manda messaggi prima della fine del costruttore.
-        if (barra is not null && barra.Gestisci(ref m, ProceduraStandard)) return;
+        if (barra is not null && barra.Gestisci(ref m, standard)) return;
         base.WndProc(ref m);
     }
 
@@ -125,6 +128,8 @@ sealed class FinestraPrincipale : Form
     protected override void OnVisibleChanged(EventArgs e)
     {
         base.OnVisibleChanged(e);
+        // Riaperta dall'area di notifica, nessun pulsante deve restare evidenziato.
+        if (!Visible) barra.Azzera();
         AggiornaWebView();
     }
 
@@ -156,6 +161,8 @@ sealed class FinestraPrincipale : Form
     // Il contrasto alto può cambiare a programma aperto: la striscia passa ai colori di sistema.
     void PreferenzeCambiate(object? mittente, UserPreferenceChangedEventArgs e)
     {
+        // Solo le categorie che toccano colori e contrasto: i cambi di sfondo del programma stesso no.
+        if (e.Category is not (UserPreferenceCategory.Accessibility or UserPreferenceCategory.Color or UserPreferenceCategory.General)) return;
         if (IsHandleCreated && !IsDisposed) BeginInvoke(new Action(barra.Ridisegna));
     }
 

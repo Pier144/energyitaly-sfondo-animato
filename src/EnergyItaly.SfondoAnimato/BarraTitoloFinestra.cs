@@ -34,7 +34,6 @@ sealed class BarraTitoloFinestra : IDisposable
     Icon iconaPiccola;
     ZonaBarra passaggio = ZonaBarra.Fuori;
     ZonaBarra premuto = ZonaBarra.Fuori;
-    bool uscitaTracciata;
 
     public BarraTitoloFinestra(Form finestra, Icon icona, string testo)
     {
@@ -90,7 +89,7 @@ sealed class BarraTitoloFinestra : IDisposable
             // striscia e avvierebbe il suo tracciamento modale. Il riquadro Snap dipende solo da HTMAXBUTTON.
             case Win32.WM_NCMOUSEMOVE:
             {
-                TracciaUscita();
+                TracciaUscita(m.HWnd);
                 var zona = ZonaDaCodice((int)m.WParam);
                 CambiaStato(EPulsante(zona) ? zona : ZonaBarra.Fuori, premuto);
                 if (!EPulsante(zona)) return false;
@@ -116,7 +115,7 @@ sealed class BarraTitoloFinestra : IDisposable
                 // "Premuto" si azzera a ogni rilascio: senza cattura del mouse un rilascio altrove non arriva.
                 CambiaStato(passaggio, ZonaBarra.Fuori);
                 if (!EPulsante(zona)) return false;
-                if (zona == eraPremuto) Esegui(zona);
+                if (zona == eraPremuto) Esegui(m.HWnd, zona);
                 m.Result = IntPtr.Zero;
                 return true;
             }
@@ -128,14 +127,13 @@ sealed class BarraTitoloFinestra : IDisposable
             {
                 var codice = (int)m.WParam;
                 if (codice != Win32.HTCAPTION && !EPulsante(ZonaDaCodice(codice))) return false;
-                if (m.Msg == Win32.WM_NCRBUTTONUP) ApriMenuDiSistema(PuntoSchermo(m.LParam));
+                if (m.Msg == Win32.WM_NCRBUTTONUP) ApriMenuDiSistema(m.HWnd, PuntoSchermo(m.LParam));
                 m.Result = IntPtr.Zero;
                 return true;
             }
 
             case Win32.WM_NCMOUSELEAVE:
-                uscitaTracciata = false;
-                CambiaStato(ZonaBarra.Fuori, ZonaBarra.Fuori);
+                Azzera();
                 return false;
         }
         return false;
@@ -185,17 +183,21 @@ sealed class BarraTitoloFinestra : IDisposable
         if (aScomparsa(Win32.ABE_RIGHT)) area.Right -= 2;
     }
 
-    void TracciaUscita()
+    // Riarmato a ogni movimento: anche la procedura standard usa TrackMouseEvent sulla stessa finestra e un
+    // suo tracciamento può finire senza WM_NCMOUSELEAVE (trascinamento, menu), lasciando un pulsante acceso.
+    static void TracciaUscita(IntPtr hWnd)
     {
-        if (uscitaTracciata) return;
         var dati = new Win32.TRACKMOUSEEVENT
         {
             cbSize = (uint)Marshal.SizeOf<Win32.TRACKMOUSEEVENT>(),
             dwFlags = Win32.TME_LEAVE | Win32.TME_NONCLIENT,
-            hwndTrack = finestra.Handle
+            hwndTrack = hWnd
         };
-        uscitaTracciata = Win32.TrackMouseEvent(ref dati);
+        Win32.TrackMouseEvent(ref dati);
     }
+
+    /// <summary>Nessun pulsante evidenziato (anche quando la finestra viene nascosta).</summary>
+    public void Azzera() => CambiaStato(ZonaBarra.Fuori, ZonaBarra.Fuori);
 
     void CambiaStato(ZonaBarra nuovoPassaggio, ZonaBarra nuovoPremuto)
     {
@@ -207,24 +209,26 @@ sealed class BarraTitoloFinestra : IDisposable
 
     // Come i pulsanti veri: WM_SYSCOMMAND, così Windows applica animazioni e stato di Snap.
     // SC_CLOSE arriva a OnFormClosing come UserClosing: la finestra si nasconde (D11).
-    void Esegui(ZonaBarra zona)
+    void Esegui(IntPtr hWnd, ZonaBarra zona)
     {
+        // Dopo riduci o chiudi non arriva sempre un WM_NCMOUSELEAVE: si spegne subito l'evidenza.
+        Azzera();
         int comando = zona switch
         {
             ZonaBarra.Riduci => Win32.SC_MINIMIZE,
-            ZonaBarra.Ingrandisci => Win32.IsZoomed(finestra.Handle) ? Win32.SC_RESTORE : Win32.SC_MAXIMIZE,
+            ZonaBarra.Ingrandisci => Win32.IsZoomed(hWnd) ? Win32.SC_RESTORE : Win32.SC_MAXIMIZE,
             _ => Win32.SC_CLOSE
         };
-        Win32.PostMessage(finestra.Handle, Win32.WM_SYSCOMMAND, (IntPtr)comando, IntPtr.Zero);
+        Win32.PostMessage(hWnd, Win32.WM_SYSCOMMAND, (IntPtr)comando, IntPtr.Zero);
     }
 
     // Come il menu di Windows: voci attive o grigie secondo lo stato della finestra, comando eseguito
     // con WM_SYSCOMMAND come se l'avesse scelto Windows.
-    void ApriMenuDiSistema(Point punto)
+    static void ApriMenuDiSistema(IntPtr hWnd, Point punto)
     {
-        var menu = Win32.GetSystemMenu(finestra.Handle, false);
+        var menu = Win32.GetSystemMenu(hWnd, false);
         if (menu == IntPtr.Zero) return;
-        bool ingrandita = Win32.IsZoomed(finestra.Handle);
+        bool ingrandita = Win32.IsZoomed(hWnd);
         void voce(int comando, bool attiva) =>
             Win32.EnableMenuItem(menu, (uint)comando, Win32.MF_BYCOMMAND | (attiva ? Win32.MF_ENABLED : Win32.MF_GRAYED));
         voce(Win32.SC_RESTORE, ingrandita);
@@ -233,8 +237,8 @@ sealed class BarraTitoloFinestra : IDisposable
         voce(Win32.SC_MINIMIZE, true);
         voce(Win32.SC_MAXIMIZE, !ingrandita);
         voce(Win32.SC_CLOSE, true);
-        int comandoScelto = Win32.TrackPopupMenu(menu, Win32.TPM_RETURNCMD | Win32.TPM_RIGHTBUTTON, punto.X, punto.Y, 0, finestra.Handle, IntPtr.Zero);
-        if (comandoScelto != 0) Win32.PostMessage(finestra.Handle, Win32.WM_SYSCOMMAND, (IntPtr)comandoScelto, IntPtr.Zero);
+        int comandoScelto = Win32.TrackPopupMenu(menu, Win32.TPM_RETURNCMD | Win32.TPM_RIGHTBUTTON, punto.X, punto.Y, 0, hWnd, IntPtr.Zero);
+        if (comandoScelto != 0) Win32.PostMessage(hWnd, Win32.WM_SYSCOMMAND, (IntPtr)comandoScelto, IntPtr.Zero);
     }
 
     static bool EPulsante(ZonaBarra z) => z is ZonaBarra.Riduci or ZonaBarra.Ingrandisci or ZonaBarra.Chiudi;
