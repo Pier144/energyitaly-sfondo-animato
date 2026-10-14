@@ -11,7 +11,7 @@
   left: 0;
   width: 1100px;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(122,181,42,0) 0%, rgba(122,181,42,0.1) 40%, rgba(122,181,42,0.5) 86%, rgba(178,224,104,0.8) 95%, rgba(122,181,42,0) 100%);
+  background: linear-gradient(90deg, rgba(var(--accento-rgb),0) 0%, rgba(var(--accento-rgb),0.1) 40%, rgba(var(--accento-rgb),0.5) 86%, rgba(var(--accento-chiaro-rgb),0.8) 95%, rgba(var(--accento-rgb),0) 100%);
   animation: onda var(--durata) linear infinite;
   will-change: transform;
 }
@@ -52,15 +52,17 @@
 <script>
 (function () {
   'use strict';
-  // Parametri modificabili da query string: ?durata=16&intensita=1&ampiezza=lieve|media|forte
+  // Parametri modificabili da query string: ?durata=16&intensita=1&ampiezza=lieve|media|forte, più i colori (sfondo.js)
   const durata = Sfondo.parametro('durata', 16);
   const intensita = Sfondo.parametro('intensita', 1);
   const ampiezza = Sfondo.parametro('ampiezza', 'lieve');
 
   const PASSO = 60;
-  const sinistra = [21, 38, 61];
-  const destra = [31, 70, 104];
-  const verde = [122, 181, 42];
+  // Colori delle celle: da sinistra a destra, e verso l'accento vicino all'angolo in alto a destra.
+  const C = Sfondo.colori();
+  const sinistra = Sfondo.rgb(Sfondo.tono('fondo', 3, -7));
+  const destra = Sfondo.rgb(Sfondo.tono('secondario', -7, -11));
+  const verde = Sfondo.rgb(C.accento);
   const mescola = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 
   Sfondo.avvia((s) => {
@@ -75,11 +77,13 @@
     const scena = document.getElementById('scena');
     scena.className = 'amp-' + ampiezza;
     scena.style.setProperty('--durata', durata + 's');
-    scena.style.setProperty('--luce', 'rgba(178,224,104,' + intensita + ')');
+    scena.style.setProperty('--luce', Sfondo.rgba('accentoChiaro', intensita));
 
     let html = '';
-    html += '<div class="strato" style="background:linear-gradient(100deg,#0e1c32 0%,#132a46 45%,#173656 100%)"></div>';
-    html += '<div class="strato" style="opacity:0.3;background:radial-gradient(ellipse ' + (1500 * k) + 'px ' + (900 * k) + 'px at 100% 0%,rgba(122,181,42,0.9) 0%,rgba(122,181,42,0.42) 35%,rgba(122,181,42,0) 70%)"></div>';
+    html += '<div class="strato" style="background:linear-gradient(100deg,' + Sfondo.tono('fondo', -1) + ' 0%,' + Sfondo.tono('fondo', 4) + ' 45%,' +
+      C.fondoChiaro + ' 100%)"></div>';
+    html += '<div class="strato" style="opacity:0.3;background:radial-gradient(ellipse ' + (1500 * k) + 'px ' + (900 * k) + 'px at 100% 0%,' +
+      Sfondo.rgba('accento', 0.9) + ' 0%,' + Sfondo.rgba('accento', 0.42) + ' 35%,' + Sfondo.rgba('accento', 0) + ' 70%)"></div>';
     html += '<div class="onda" style="top:-80px;height:' + (H + 160) + 'px;opacity:' + (0.35 * intensita) +
       ';--inizio:' + inizio + 'px;--fine:' + fine + 'px"></div>';
 
@@ -102,7 +106,7 @@
     }
 
     html += '<div class="strato" style="background:radial-gradient(ellipse ' + (1500 * k) + 'px ' + (950 * k) + 'px at ' + m.x + 'px ' + (m.y + m.h) +
-      'px,#0f1e35 0%,rgba(15,30,53,0.94) 32%,rgba(15,30,53,0) 75%)"></div>';
+      'px,' + C.velo + ' 0%,' + Sfondo.rgba('velo', 0.94) + ' 32%,' + Sfondo.rgba('velo', 0) + ' 75%)"></div>';
     scena.innerHTML = html;
     Sfondo.posizionaLogo(document.getElementById('logo'), s);
   });
