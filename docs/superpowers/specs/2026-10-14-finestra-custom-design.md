@@ -123,10 +123,11 @@ Riga superiore a due colonne (`.riga-onda`), sempre affiancate (niente `flex-wra
   - "Estendi / Duplica" resta accanto alla didascalia (solo con 2+ monitor).
 - **Colonna comandi** (`.pannello-onda`, `flex: 1 1 0; min-width: 0`), centrata in verticale rispetto all'anteprima:
   - etichetta "● IN PAUSA" solo quando lo sfondo è in pausa (la scritta "IN ONDA" non compare più, richiesta dell'utente), titolo (`h1` da 44 a 32 px), posizione nella playlist;
-  - tempo (da 40 a 32 px) e barra di avanzamento;
-  - una riga con i pulsanti precedente / pausa / successivo (invariati) e, accanto, il riquadro "Poi" in forma ridotta (miniatura 64 px, "POI" e titolo su due righe, titolo con i puntini se lungo). La riga va a capo (`flex-wrap`) solo se lo spazio non basta: in pratica "Poi" sta sempre accanto ai pulsanti, e la colonna resta abbastanza bassa da stare accanto all'anteprima.
+  - tempo (da 40 a 32 px) e, sulla stessa riga allineato a destra, l'intervallo in forma compatta: "ogni [30] [minuti ▾] Mai" (stesso `#gruppo-intervallo`, senza riquadro e senza l'etichetta "CAMBIA OGNI"); sotto, la barra di avanzamento. Il messaggio d'errore dell'intervallo (`#intervallo-errore`) compare sotto la barra.
+  - una riga con, nell'ordine: pulsante **ordine casuale** (icona frecce incrociate, 44 px, senza bordo; `aria-pressed` e colore verde chiaro su fondo verde tenue quando l'ordine è casuale; un clic alterna `casuale` / `sequenziale`; sostituisce il gruppo "In ordine / Casuale", che si toglie), pulsanti precedente / pausa / successivo (invariati) e, accanto, il riquadro "Poi" in forma ridotta (miniatura 64 px, "POI" e titolo su due righe, titolo con i puntini se lungo). La riga va a capo (`flex-wrap`) solo se lo spazio non basta: in pratica "Poi" sta sempre accanto ai pulsanti, e la colonna resta abbastanza bassa da stare accanto all'anteprima.
 - **Playlist** sotto la riga:
-  - testata sempre su una riga: titolo "Playlist" e nota a sinistra (la nota si accorcia con i puntini se lo spazio non basta), controlli (intervallo, ordine) a destra senza andare a capo (`.riga-controlli` perde `flex-wrap`). Il messaggio d'errore dell'intervallo (`#intervallo-errore`) resta sotto i controlli: quando compare la testata occupa per un momento due righe, ed è accettato. Verificato nell'anteprima: alla dimensione minima una testata su due righe nasconderebbe metà delle schede.
+  - testata: solo titolo "Playlist" e nota (la nota si accorcia con i puntini se lo spazio non basta). I controlli di intervallo e ordine non stanno più qui (variante **C** "stile lettore", scelta dall'utente tra tre provate nell'anteprima): si tolgono `.controlli-playlist` e `.riga-controlli`.
+  - Nota: "Trascina per cambiare l'ordine, clicca un'anteprima per mostrarla subito." (senza "Dissolvenza di N s", richiesta dell'utente).
   - L'interruttore "I video cambiano a fine riproduzione" si toglie dalla scheda "In onda" (resta in Impostazioni, `#sw-fine-video`). In `app.js` vanno tolti **entrambi** gli usi di `#sw-fine-video-playlist`: l'aggiornamento in `renderControlli` (`setAttribute('aria-checked', ...)`, che altrimenti lancerebbe un `TypeError` su `null` e fermerebbe il disegno) e il gestore del clic. In CSS si toglie `.riga-interruttore`.
   - Striscia delle schede orizzontale come oggi, schede larghe 168 px (da 200); anche `.aggiungi-playlist` larga 168 px, con `min-height` adattata all'altezza delle schede.
 - Spaziature: `.contenuto` padding 20 px su tutti i lati (oggi 32/28/48); gap 24 px sia in `.contenuto` sia in `.vista` (oggi 40 entrambi).
@@ -137,8 +138,8 @@ Area della pagina = finestra meno la cornice standard (circa 8 px a sinistra, a 
 
 | Finestra | Area pagina (100%) | Deve vedersi senza scorrere |
 |---|---|---|
-| 1280 x 860 (apertura) | circa 1264 x 820 | Tutto: anteprima, comandi, "Poi", testata playlist con controlli, schede playlist intere |
-| 960 x 640 (minima) | circa 944 x 600 | Anteprima, comandi (pulsanti compresi), testata playlist con controlli; schede playlist almeno per metà |
+| 1280 x 860 (apertura) | circa 1264 x 820 | Tutto: anteprima, comandi con intervallo e ordine casuale, "Poi", testata playlist, schede playlist intere |
+| 960 x 640 (minima) | circa 944 x 600 | Anteprima, comandi con intervallo e ordine casuale, testata playlist; schede playlist circa per metà (nel prototipo 48%) |
 | Ingrandita su 2560 x 1440 (barra delle applicazioni 48 px) | circa 2560 x 1360 | Tutto; il blocco dei monitor non supera il 40% dell'altezza, lo spazio in più va alla playlist (`.contenuto` resta limitato a 1440 px e centrato) |
 
 ## 5. Fuori dall'ambito
