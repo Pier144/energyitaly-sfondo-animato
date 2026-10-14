@@ -54,7 +54,8 @@ public static class Messaggi
                     DissolvenzaSecondi: Intero(m, "dissolvenzaSecondi"),
                     ModoMonitor: Testo(m, "modoMonitor"),
                     PausaABatteria: Booleano(m, "pausaABatteria"),
-                    AvvioConWindows: Booleano(m, "avvioConWindows"));
+                    AvvioConWindows: Booleano(m, "avvioConWindows"),
+                    AggiornamentiAutomatici: Booleano(m, "aggiornamentiAutomatici"));
             }
             return new ComandoApp(tipo, Testo(r, "id"), ids, modifiche);
         }
@@ -150,6 +151,7 @@ public static class Messaggi
         w.WriteString("modoMonitor", NomiJson.Di(i.ModoMonitor));
         w.WriteBoolean("pausaABatteria", i.PausaABatteria);
         w.WriteBoolean("avvioConWindows", i.AvvioConWindows);
+        w.WriteBoolean("aggiornamentiAutomatici", i.AggiornamentiAutomatici);
         w.WriteEndObject();
 
         StringaONull(w, "corrente", s.Corrente);

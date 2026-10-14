@@ -75,6 +75,8 @@ sealed class SistemaFalso : ISistema
     public (string Titolo, bool InPausa) Icona { get; private set; }
 
     public void ImpostaAvvioConWindows(bool attivo) => AvvioConWindows = attivo;
+    public bool? AggiornamentiAutomatici { get; private set; }
+    public void ImpostaAggiornamentiAutomatici(bool attivo) => AggiornamentiAutomatici = attivo;
     public void ApriCartellaLog() => CartelleLogAperte++;
     public void AggiornaIcona(string titolo, bool inPausa) => Icona = (titolo, inPausa);
 }

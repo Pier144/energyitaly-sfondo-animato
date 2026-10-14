@@ -44,7 +44,22 @@ public class CoordinatoreTests
         Assert.Equal(new Rettangolo(-1920, 0, 3840, 1087), player.Area);
         Assert.Contains("\"ultimaVoce\": \"a\"", archivio.Impostazioni);
         Assert.True(sistema.AvvioConWindows);
+        Assert.True(sistema.AggiornamentiAutomatici);
         Assert.Equal(("A", false), sistema.Icona);
+    }
+
+    [Fact]
+    public void AggiornamentiAutomatici_DallaFinestraArrivanoAlSistemaEAlloStato()
+    {
+        var c = Avvia();
+
+        c.DaApp(Comando(new { tipo = "impostazioni", modifiche = new { aggiornamentiAutomatici = false } }));
+        Assert.False(sistema.AggiornamentiAutomatici);
+        Assert.False(app.UltimoStato.GetProperty("impostazioni").GetProperty("aggiornamentiAutomatici").GetBoolean());
+        Assert.Contains("\"aggiornamentiAutomatici\": false", archivio.Impostazioni);
+
+        c.DaApp(Comando(new { tipo = "ripristina" }));
+        Assert.True(sistema.AggiornamentiAutomatici);
     }
 
     [Fact]

@@ -80,6 +80,7 @@ public sealed class Coordinatore
 
         try { sistema.ImpostaAvvioConWindows(imp.AvvioConWindows); }
         catch (Exception ex) { log.Errore($"Avvio con Windows non impostato: {ex.Message}"); }
+        ImpostaAggiornamenti();
         SalvaUltima();
         AggiornaIcona();
     }
@@ -264,7 +265,14 @@ public sealed class Coordinatore
             try { sistema.ImpostaAvvioConWindows(nuova.AvvioConWindows); }
             catch (Exception ex) { log.Errore($"Avvio con Windows non impostato: {ex.Message}"); }
         }
+        if (vecchia.AggiornamentiAutomatici != nuova.AggiornamentiAutomatici) ImpostaAggiornamenti();
         InviaStato();
+    }
+
+    void ImpostaAggiornamenti()
+    {
+        try { sistema.ImpostaAggiornamentiAutomatici(imp.AggiornamentiAutomatici); }
+        catch (Exception ex) { log.Errore($"Aggiornamenti automatici non impostati: {ex.Message}"); }
     }
 
     void CambiaPlaylist(IReadOnlyList<string> ids)
@@ -320,6 +328,7 @@ public sealed class Coordinatore
         motore.AggiornaRegole(Regole(), riavvia: true);
         try { sistema.ImpostaAvvioConWindows(imp.AvvioConWindows); }
         catch (Exception ex) { log.Errore($"Avvio con Windows non impostato: {ex.Message}"); }
+        ImpostaAggiornamenti();
         RicalcolaDisposizione(conDissolvenza: true);
         RivalutaPausa();
         InviaAvviso("Impostazioni aziendali ripristinate");

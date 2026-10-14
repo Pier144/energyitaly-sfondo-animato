@@ -34,6 +34,8 @@ public interface IArchivio
 public interface ISistema
 {
     void ImpostaAvvioConWindows(bool attivo);
+    /// <summary>Accende o spegne gli aggiornamenti automatici (impostazione "Aggiornamenti automatici").</summary>
+    void ImpostaAggiornamentiAutomatici(bool attivo);
     void ApriCartellaLog();
     void AggiornaIcona(string titolo, bool inPausa);
 }

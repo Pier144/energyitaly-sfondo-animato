@@ -225,6 +225,8 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
 #endif
     }
 
+    public void ImpostaAggiornamentiAutomatici(bool attivo) { }
+
     public void ApriCartellaLog()
     {
         Directory.CreateDirectory(Percorsi.Log);

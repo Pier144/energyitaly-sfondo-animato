@@ -24,6 +24,7 @@ public class ImpostazioniTests
         Assert.Equal(ModoMonitor.Estendi, i.ModoMonitor);
         Assert.True(i.PausaABatteria);
         Assert.True(i.AvvioConWindows);
+        Assert.True(i.AggiornamentiAutomatici);
         Assert.Null(i.UltimaVoce);
     }
 
@@ -50,6 +51,7 @@ public class ImpostazioniTests
               "rotazioneAttiva": true, "fineVideo": false, "ordine": "casuale",
               "playlist": ["u-mare-abc123", "aurora"], "dissolvenzaSecondi": 4,
               "modoMonitor": "duplica", "pausaABatteria": false, "avvioConWindows": false,
+              "aggiornamentiAutomatici": false,
               "ultimaVoce": "aurora"
             }
             """;
@@ -66,7 +68,21 @@ public class ImpostazioniTests
         Assert.Equal(ModoMonitor.Duplica, i.ModoMonitor);
         Assert.False(i.PausaABatteria);
         Assert.False(i.AvvioConWindows);
+        Assert.False(i.AggiornamentiAutomatici);
         Assert.Equal("aurora", i.UltimaVoce);
+    }
+
+    [Fact]
+    public void AggiornamentiAutomatici_ValoreAziendaleEModifica()
+    {
+        var aziendale = ArchivioImpostazioni.Predefinite("""{ "versione": 2, "aggiornamentiAutomatici": false }""", Validi, Base, []);
+        Assert.False(aziendale.AggiornamentiAutomatici);
+
+        var (r, e) = Codice().Applica(new ModificheImpostazioni(AggiornamentiAutomatici: false));
+        Assert.Null(e);
+        Assert.False(r.AggiornamentiAutomatici);
+        Assert.Contains("\"aggiornamentiAutomatici\": false", ArchivioImpostazioni.Scrivi(r));
+        Assert.False(ArchivioImpostazioni.Carica(ArchivioImpostazioni.Scrivi(r), Codice(), Validi, []).AggiornamentiAutomatici);
     }
 
     [Theory]

@@ -15,6 +15,7 @@ public sealed record Impostazioni
     public ModoMonitor ModoMonitor { get; init; } = ModoMonitor.Estendi;
     public bool PausaABatteria { get; init; } = true;
     public bool AvvioConWindows { get; init; } = true;
+    public bool AggiornamentiAutomatici { get; init; } = true;
     public string? UltimaVoce { get; init; }
 
     /// <summary>Durata dell'intervallo di cambio; null se la rotazione è spenta ("Mai").</summary>
@@ -62,7 +63,8 @@ public sealed record Impostazioni
             RotazioneAttiva = m.RotazioneAttiva ?? RotazioneAttiva,
             FineVideo = m.FineVideo ?? FineVideo,
             PausaABatteria = m.PausaABatteria ?? PausaABatteria,
-            AvvioConWindows = m.AvvioConWindows ?? AvvioConWindows
+            AvvioConWindows = m.AvvioConWindows ?? AvvioConWindows,
+            AggiornamentiAutomatici = m.AggiornamentiAutomatici ?? AggiornamentiAutomatici
         }, null);
     }
 }
@@ -77,4 +79,5 @@ public sealed record ModificheImpostazioni(
     int? DissolvenzaSecondi = null,
     string? ModoMonitor = null,
     bool? PausaABatteria = null,
-    bool? AvvioConWindows = null);
+    bool? AvvioConWindows = null,
+    bool? AggiornamentiAutomatici = null);

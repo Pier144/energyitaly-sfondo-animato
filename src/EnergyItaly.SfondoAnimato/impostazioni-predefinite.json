@@ -8,5 +8,6 @@
   "dissolvenzaSecondi": 2,
   "modoMonitor": "estendi",
   "pausaABatteria": true,
-  "avvioConWindows": true
+  "avvioConWindows": true,
+  "aggiornamentiAutomatici": true
 }

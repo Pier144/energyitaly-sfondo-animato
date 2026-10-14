@@ -67,6 +67,7 @@ public static class ArchivioImpostazioni
             ModoMonitor = lettore.Enumerato("modoMonitor", b.ModoMonitor, NomiJson.LeggiModo),
             PausaABatteria = lettore.Booleano("pausaABatteria", b.PausaABatteria),
             AvvioConWindows = lettore.Booleano("avvioConWindows", b.AvvioConWindows),
+            AggiornamentiAutomatici = lettore.Booleano("aggiornamentiAutomatici", b.AggiornamentiAutomatici),
             UltimaVoce = ultima
         };
     }
@@ -162,6 +163,7 @@ public static class ArchivioImpostazioni
             w.WriteString("modoMonitor", NomiJson.Di(i.ModoMonitor));
             w.WriteBoolean("pausaABatteria", i.PausaABatteria);
             w.WriteBoolean("avvioConWindows", i.AvvioConWindows);
+            w.WriteBoolean("aggiornamentiAutomatici", i.AggiornamentiAutomatici);
             if (i.UltimaVoce is null) w.WriteNull("ultimaVoce"); else w.WriteString("ultimaVoce", i.UltimaVoce);
             w.WriteEndObject();
         }
