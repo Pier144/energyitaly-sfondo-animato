@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Prova su due schermi</title>
+<style>
+html, body { margin: 0; height: 100%; background: #16181d; color: #cfd3da; font: 14px "Segoe UI", sans-serif; overflow: hidden; }
+#titolo { position: absolute; left: 24px; top: 14px; font-weight: 600; letter-spacing: .03em; }
+#titolo span { color: #7c828c; font-weight: 400; }
+#scrivania { position: absolute; overflow: visible; }
+#scrivania iframe { position: absolute; left: 0; top: 0; width: 3840px; height: 1087px; border: 0; transform-origin: 0 0; }
+.cornice { position: absolute; border: 8px solid #050608; border-radius: 6px; margin: -8px; pointer-events: none; box-shadow: 0 14px 40px rgba(0,0,0,.6); }
+.giunzione { position: absolute; top: -8px; bottom: -8px; width: 8px; background: #16181d; }
+.piede { position: absolute; width: 90px; height: 70px; background: linear-gradient(#2a2d33, #15171b); clip-path: polygon(35% 0, 65% 0, 72% 80%, 100% 85%, 100% 100%, 0 100%, 0 85%, 28% 80%); }
+</style>
+</head>
+<body>
+<div id="titolo"></div>
+<div id="scrivania"></div>
+<script>
+// Mostra un'animazione sui due monitor del PC di riferimento (finestra 3840x1087, sinistro sfalsato di 7 px), in scala.
+// Uso: prova-due-schermi.html?animazione=segnale.html&variante=dialogo  (gli altri parametri passano all'animazione)
+(function () {
+  'use strict';
+  const MONITOR = [{ x: 0, y: 7, w: 1920, h: 1080 }, { x: 1920, y: 0, w: 1920, h: 1080 }];
+  const query = new URLSearchParams(location.search);
+  const animazione = query.get('animazione') || 'segnale.html';
+  query.delete('animazione');
+  const titolo = query.get('titolo') || animazione;
+  query.delete('titolo');
+  query.set('monitor', MONITOR.map((m) => [m.x, m.y, m.w, m.h].join(',')).join(';'));
+
+  document.getElementById('titolo').innerHTML = titolo + ' <span>' + [...query].filter(([n]) => n !== 'monitor').map(([n, v]) => n + '=' + v).join(' ') + '</span>';
+  const scrivania = document.getElementById('scrivania');
+  let html = '<iframe src="/animazioni/' + encodeURI(animazione) + '?' + query.toString() + '"></iframe>';
+  MONITOR.forEach((m) => {
+    html += '<div class="cornice" data-m="' + [m.x, m.y, m.w, m.h] + '"></div><div class="piede" data-m="' + [m.x, m.y, m.w, m.h] + '"></div>';
+  });
+  html += '<div class="giunzione"></div>';
+  scrivania.innerHTML = html;
+
+  function disponi() {
+    const k = Math.min((innerWidth - 48) / 3840, (innerHeight - 140) / 1087);
+    scrivania.style.left = ((innerWidth - 3840 * k) / 2) + 'px';
+    scrivania.style.top = (48 + (innerHeight - 140 - 1087 * k) / 2) + 'px';
+    scrivania.style.width = 3840 * k + 'px';
+    scrivania.style.height = 1087 * k + 'px';
+    scrivania.querySelector('iframe').style.transform = 'scale(' + k + ')';
+    scrivania.querySelectorAll('.cornice').forEach((c) => {
+      const [x, y, w, h] = c.dataset.m.split(',').map(Number);
+      Object.assign(c.style, { left: x * k + 'px', top: y * k + 'px', width: w * k + 'px', height: h * k + 'px' });
+    });
+    scrivania.querySelectorAll('.piede').forEach((p) => {
+      const [x, y, w, h] = p.dataset.m.split(',').map(Number);
+      Object.assign(p.style, { left: (x + w / 2) * k - 45 + 'px', top: (y + h) * k + 8 + 'px' });
+    });
+    scrivania.querySelector('.giunzione').style.left = 1920 * k - 4 + 'px';
+  }
+  addEventListener('resize', disponi);
+  disponi();
+})();
+</script>
+</body>
+</html>

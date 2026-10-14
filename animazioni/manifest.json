@@ -6,7 +6,7 @@
     { "id": "paesaggio-rinnovabile", "titolo": "Paesaggio rinnovabile", "file": "paesaggio-rinnovabile.html", "parametri": { "velocita": 1 } },
     { "id": "circuito", "titolo": "Circuito", "file": "circuito.html", "parametri": { "tracce": 24, "velocita": 1 } },
     { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "parametri": { "velocita": 1, "veli": 1 } },
-    { "id": "segnale", "titolo": "Segnale", "file": "segnale.html", "parametri": { "velocita": 1, "onde": 4 } },
+    { "id": "segnale", "titolo": "Segnale", "file": "segnale.html", "parametri": { "velocita": 1, "onde": 2 } },
     { "id": "trama", "titolo": "Trama", "file": "trama.html", "parametri": { "velocita": 1, "passo": 132 } }
   ]
 }
