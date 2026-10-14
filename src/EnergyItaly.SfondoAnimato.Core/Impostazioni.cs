@@ -24,6 +24,9 @@ public sealed record Impostazioni
     /// </summary>
     public IReadOnlyList<string>? SfondiAziendaliVisti { get; init; }
 
+    /// <summary>Personalizzazioni degli sfondi per id, solo quelle non vuote (spec personalizzazione 4.3).</summary>
+    public IReadOnlyDictionary<string, Personalizzazione> Personalizzazioni { get; init; } = new Dictionary<string, Personalizzazione>();
+
     /// <summary>Durata dell'intervallo di cambio; null se la rotazione è spenta ("Mai").</summary>
     public TimeSpan? Intervallo => !RotazioneAttiva
         ? null

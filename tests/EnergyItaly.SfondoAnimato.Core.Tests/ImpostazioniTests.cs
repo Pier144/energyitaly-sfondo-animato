@@ -262,6 +262,67 @@ public class ImpostazioniTests
     }
 
     [Fact]
+    public void Personalizzazioni_AndataERitorno()
+    {
+        var originale = Codice() with
+        {
+            Personalizzazioni = new Dictionary<string, Personalizzazione>
+            {
+                ["aurora"] = new()
+                {
+                    Tavolozza = "personalizzata", Fondo = "#102030", Accento = "#e0a040",
+                    Opzioni = new Dictionary<string, ValoreOpzione>
+                    {
+                        ["velocita"] = ValoreOpzione.DiNumero(1.5),
+                        ["veli"] = ValoreOpzione.DiBooleano(false),
+                        ["ampiezza"] = ValoreOpzione.DiTesto("forte")
+                    },
+                    ModoMonitor = ModoMonitor.Duplica
+                },
+                ["u-mare-abc123"] = new() { Riempimento = Riempimento.Adatta }
+            }
+        };
+
+        var json = ArchivioImpostazioni.Scrivi(originale);
+        var avvisi = new List<string>();
+        var riletta = ArchivioImpostazioni.Carica(json, Codice(), Validi, avvisi);
+
+        Assert.Empty(avvisi);
+        Assert.Contains("\"velocita\": 1.5", json);
+        Assert.Contains("\"veli\": false", json);
+        var a = riletta.Personalizzazioni["aurora"];
+        Assert.Equal("personalizzata", a.Tavolozza);
+        Assert.Equal("#e0a040", a.Accento);
+        Assert.Equal(1.5, a.Opzioni["velocita"].Numero);
+        Assert.False(a.Opzioni["veli"].Booleano);
+        Assert.Equal("forte", a.Opzioni["ampiezza"].Testo);
+        Assert.Equal(ModoMonitor.Duplica, a.ModoMonitor);
+        Assert.Equal(Riempimento.Adatta, riletta.Personalizzazioni["u-mare-abc123"].Riempimento);
+    }
+
+    [Fact]
+    public void Personalizzazioni_CampiDelTipoSbagliatoTolti()
+    {
+        var avvisi = new List<string>();
+        var i = ArchivioImpostazioni.Carica("""
+            { "versione": 2, "personalizzazioni": {
+                "aurora": { "tavolozza": 3, "opzioni": { "velocita": [1] }, "modoMonitor": "ruota" },
+                "onda-di-luce": "notte",
+                "onde-di-energia": { "modoMonitor": "duplica" } } }
+            """, Codice(), Validi, avvisi);
+
+        Assert.Equal(new[] { "onde-di-energia" }, i.Personalizzazioni.Keys);
+        Assert.Equal(4, avvisi.Count);
+    }
+
+    [Fact]
+    public void Personalizzazioni_IgnorateNelFileAziendale()
+    {
+        var i = ArchivioImpostazioni.Predefinite("""{ "versione": 2, "personalizzazioni": { "aurora": { "tavolozza": "notte" } } }""", Validi, Base, []);
+        Assert.Empty(i.Personalizzazioni);
+    }
+
+    [Fact]
     public void Applica_ValoreFuoriIntervallo_Errore()
     {
         var i = Codice();

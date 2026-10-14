@@ -23,7 +23,7 @@ public static class ArchivioImpostazioni
         var codice = new Impostazioni { Playlist = playlistDiBase.ToList() };
         return string.IsNullOrWhiteSpace(jsonAziendale)
             ? codice
-            : Leggi(jsonAziendale, codice, idValidi, avvisi, "impostazioni-predefinite.json", codice.SfondiAziendaliVisti);
+            : Leggi(jsonAziendale, codice, idValidi, avvisi, "impostazioni-predefinite.json", codice.SfondiAziendaliVisti, conPersonalizzazioni: false);
     }
 
     /// <summary>Impostazioni dell'utente sopra le predefinite.</summary>
@@ -31,10 +31,10 @@ public static class ArchivioImpostazioni
         IReadOnlyCollection<string> idValidi, List<string> avvisi) =>
         string.IsNullOrWhiteSpace(jsonUtente)
             ? predefinite
-            : Leggi(jsonUtente, predefinite, idValidi, avvisi, "impostazioni.json", SfondiAziendaliFinoA110);
+            : Leggi(jsonUtente, predefinite, idValidi, avvisi, "impostazioni.json", SfondiAziendaliFinoA110, conPersonalizzazioni: true);
 
     static Impostazioni Leggi(string json, Impostazioni b, IReadOnlyCollection<string> idValidi, List<string> avvisi, string nome,
-        IReadOnlyList<string>? vistiSeManca)
+        IReadOnlyList<string>? vistiSeManca, bool conPersonalizzazioni)
     {
         JsonElement r;
         try
@@ -74,7 +74,9 @@ public static class ArchivioImpostazioni
             AvvioConWindows = lettore.Booleano("avvioConWindows", b.AvvioConWindows),
             AggiornamentiAutomatici = lettore.Booleano("aggiornamentiAutomatici", b.AggiornamentiAutomatici),
             UltimaVoce = ultima,
-            SfondiAziendaliVisti = LeggiVisti(r, vistiSeManca, nome, avvisi)
+            SfondiAziendaliVisti = LeggiVisti(r, vistiSeManca, nome, avvisi),
+            // Il file aziendale non decide le personalizzazioni (spec personalizzazione 6).
+            Personalizzazioni = conPersonalizzazioni ? LeggiPersonalizzazioni(r, nome, avvisi) : b.Personalizzazioni
         };
     }
 
@@ -92,6 +94,73 @@ public static class ArchivioImpostazioni
             return (unita, n);
         avvisi.Add($"{nome}: valore non valido per 'intervallo', uso {b.IntervalloValore} {NomiJson.Di(b.IntervalloUnita)}");
         return (b.IntervalloUnita, b.IntervalloValore);
+    }
+
+    /// <summary>Lettura solo sintattica: la validazione contro manifest e voci la fa Personalizzazioni.Riconcilia.</summary>
+    static IReadOnlyDictionary<string, Personalizzazione> LeggiPersonalizzazioni(JsonElement r, string nome, List<string> avvisi)
+    {
+        var risultato = new Dictionary<string, Personalizzazione>();
+        if (!r.TryGetProperty("personalizzazioni", out var tutte)) return risultato;
+        if (tutte.ValueKind != JsonValueKind.Object)
+        {
+            avvisi.Add($"{nome}: 'personalizzazioni' non valido, ignorato");
+            return risultato;
+        }
+        foreach (var voce in tutte.EnumerateObject())
+        {
+            var dove = $"{nome}: personalizzazione di '{voce.Name}'";
+            if (voce.Value.ValueKind != JsonValueKind.Object)
+            {
+                avvisi.Add($"{dove} non valida, tolta");
+                continue;
+            }
+            var o = voce.Value;
+            string? Testo(string campo)
+            {
+                if (!o.TryGetProperty(campo, out var x)) return null;
+                if (x.ValueKind == JsonValueKind.String) return x.GetString();
+                avvisi.Add($"{dove}: '{campo}' non valido, tolto");
+                return null;
+            }
+            var opzioni = new Dictionary<string, ValoreOpzione>();
+            if (o.TryGetProperty("opzioni", out var op))
+            {
+                if (op.ValueKind != JsonValueKind.Object) avvisi.Add($"{dove}: 'opzioni' non valido, tolto");
+                else
+                {
+                    foreach (var kv in op.EnumerateObject())
+                    {
+                        ValoreOpzione? valore = kv.Value.ValueKind switch
+                        {
+                            JsonValueKind.Number => ValoreOpzione.DiNumero(kv.Value.GetDouble()),
+                            JsonValueKind.String => ValoreOpzione.DiTesto(kv.Value.GetString()!),
+                            JsonValueKind.True => ValoreOpzione.DiBooleano(true),
+                            JsonValueKind.False => ValoreOpzione.DiBooleano(false),
+                            _ => null
+                        };
+                        if (valore is null) avvisi.Add($"{dove}: opzione '{kv.Name}' non valida, tolta");
+                        else opzioni[kv.Name] = valore;
+                    }
+                }
+            }
+            ModoMonitor? modo = null;
+            if (Testo("modoMonitor") is { } m && (modo = NomiJson.LeggiModo(m)) is null)
+                avvisi.Add($"{dove}: 'modoMonitor' non valido, tolto");
+            Riempimento? riempimento = null;
+            if (Testo("riempimento") is { } rr && (riempimento = NomiJson.LeggiRiempimento(rr)) is null)
+                avvisi.Add($"{dove}: 'riempimento' non valido, tolto");
+            var p = new Personalizzazione
+            {
+                Tavolozza = Testo("tavolozza"),
+                Fondo = Testo("fondo"),
+                Accento = Testo("accento"),
+                Opzioni = opzioni,
+                ModoMonitor = modo,
+                Riempimento = riempimento
+            };
+            if (!p.Vuota) risultato[voce.Name] = p;
+        }
+        return risultato;
     }
 
     static IReadOnlyList<string>? LeggiVisti(JsonElement r, IReadOnlyList<string>? seManca, string nome, List<string> avvisi)
@@ -185,6 +254,17 @@ public static class ArchivioImpostazioni
                 w.WriteStartArray("sfondiAziendaliVisti");
                 foreach (var id in i.SfondiAziendaliVisti) w.WriteStringValue(id);
                 w.WriteEndArray();
+            }
+            if (i.Personalizzazioni.Count > 0)
+            {
+                w.WritePropertyName("personalizzazioni");
+                w.WriteStartObject();
+                foreach (var (id, p) in i.Personalizzazioni)
+                {
+                    w.WritePropertyName(id);
+                    Personalizzazioni.Scrivi(w, p);
+                }
+                w.WriteEndObject();
             }
             w.WriteEndObject();
         }
