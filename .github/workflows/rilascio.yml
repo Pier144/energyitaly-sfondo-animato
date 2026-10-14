@@ -1,0 +1,76 @@
+# Pubblica una versione quando si invia un tag vX.Y.Z (spec 2026-10-14-aggiornamento-automatico, 3.2).
+# I PC con il programma installato la trovano tramite versione.json e la installano da soli.
+name: Rilascio
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  rilascio:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Controlli sul tag
+        id: versione
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v(\d+\.\d+\.\d+)$') { throw "Il tag '$tag' non è nel formato vX.Y.Z" }
+          $versione = $Matches[1]
+          [xml]$props = Get-Content Directory.Build.props
+          $nelCodice = @($props.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ })[0]
+          if ($versione -ne $nelCodice) { throw "Il tag $tag non corrisponde a <Version>$nelCodice</Version> di Directory.Build.props" }
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) { throw "Il commit del tag $tag non è su main" }
+          "versione=$versione" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/EnergyItaly.SfondoAnimato.Core.Tests -c Release
+
+      - name: Publish
+        run: dotnet publish src/EnergyItaly.SfondoAnimato/EnergyItaly.SfondoAnimato.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+
+      - name: Installer
+        run: |
+          # ISCC.exe non è nel PATH: si cerca nella cartella di Inno Setup, installandolo (versione fissata) se manca.
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --version=6.4.3 -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "Installazione di Inno Setup non riuscita" }
+            $iscc = @(Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe")[0].FullName
+            if (-not $iscc) { throw "ISCC.exe non trovato dopo l'installazione di Inno Setup" }
+          }
+          & $iscc "/DVersione=${{ steps.versione.outputs.versione }}" installer\SfondoAnimato.iss
+          if ($LASTEXITCODE -ne 0) { throw "Compilazione dell'installer non riuscita" }
+
+      - name: versione.json
+        run: |
+          $versione = "${{ steps.versione.outputs.versione }}"
+          $file = "EnergyItaly-SfondoAnimato-$versione-setup.exe"
+          $percorso = "installer\Output\$file"
+          if (-not (Test-Path $percorso)) { throw "Installer $percorso non trovato" }
+          $sha = (Get-FileHash $percorso -Algorithm SHA256).Hash.ToLowerInvariant()
+          [ordered]@{ versione = $versione; file = $file; sha256 = $sha } | ConvertTo-Json -Compress | Set-Content versione.json -Encoding utf8NoBOM
+          Get-Content versione.json
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $versione = "${{ steps.versione.outputs.versione }}"
+          gh release create "v$versione" "installer\Output\EnergyItaly-SfondoAnimato-$versione-setup.exe" versione.json `
+            --title "Energy Italy Sfondo Animato $versione" --generate-notes

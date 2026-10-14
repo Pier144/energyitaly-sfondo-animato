@@ -3,7 +3,10 @@
 ; Installazione silenziosa per la distribuzione: setup.exe /VERYSILENT /SUPPRESSMSGBOXES
 
 #define NomeApp "Energy Italy Sfondo Animato"
-#define Versione "1.0.0"
+; La versione arriva da ISCC /DVersione=X.Y.Z (workflow di rilascio); a mano resta questa.
+#ifndef Versione
+  #define Versione "1.0.0"
+#endif
 #define Eseguibile "SfondoAnimato.exe"
 
 [Setup]
@@ -40,7 +43,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\{#Eseguibile}"; Description: "Avvia {#NomeApp}"; Flags: nowait postinstall skipifsilent
-Filename: "{app}\{#Eseguibile}"; Parameters: "--avvio"; Flags: nowait skipifnotsilent
+Filename: "{app}\{#Eseguibile}"; Parameters: "{code:ParametriRiavvio}"; Flags: nowait skipifnotsilent
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM {#Eseguibile} /F"; Flags: runhidden; RunOnceId: "ChiudiProgramma"
@@ -52,6 +55,18 @@ Type: filesandordirs; Name: "{localappdata}\EnergyItaly\SfondoAnimato"
 [Code]
 const
   ChiaveWebView2 = 'Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}';
+
+var
+  InstallazioneRiuscita: Boolean;
+
+// "Installa ora" del programma passa /APRI=1: dopo l'aggiornamento riparte con la finestra aperta.
+function ParametriRiavvio(Param: String): String;
+begin
+  if ExpandConstant('{param:APRI|0}') = '1' then
+    Result := ''
+  else
+    Result := '--avvio';
+end;
 
 function VersioneValida(const Valore: String): Boolean;
 begin
@@ -73,6 +88,8 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   Codice: Integer;
 begin
+  if CurStep = ssPostInstall then
+    InstallazioneRiuscita := True;
   if (CurStep = ssPostInstall) and not WebView2Presente() then
   begin
     try
@@ -80,6 +97,23 @@ begin
       Exec(ExpandConstant('{tmp}\MicrosoftEdgeWebview2Setup.exe'), '/silent /install', '', SW_HIDE, ewWaitUntilTerminated, Codice);
     except
       Log('WebView2 non installato: ' + GetExceptionMessage);
+    end;
+  end;
+end;
+
+// Aggiornamento silenzioso non riuscito: il programma (uscito per farsi aggiornare) riparte con la
+// versione di prima, invece di restare spento fino al prossimo accesso.
+procedure DeinitializeSetup();
+var
+  Codice: Integer;
+begin
+  if WizardSilent() and not InstallazioneRiuscita then
+  begin
+    try
+      if FileExists(ExpandConstant('{app}\{#Eseguibile}')) then
+        Exec(ExpandConstant('{app}\{#Eseguibile}'), '--avvio', '', SW_SHOWNORMAL, ewNoWait, Codice);
+    except
+      Log('Programma non rilanciato: ' + GetExceptionMessage);
     end;
   end;
 end;
