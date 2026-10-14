@@ -67,7 +67,7 @@ Dalla Libreria si sceglie uno sfondo e lo si adatta: colori, funzionamento (velo
 | Circuito | `tracce`: numero 12-40 passo 2, 24; `velocita` |
 | Aurora | `velocita`; `veli`: interruttore, true (titolo "Veli di luce") |
 | Segnale | `velocita`; `onde`: numero 0-4 passo 1, 2 (titolo "Anelli per impulso") |
-| Trama | `velocita`; `distanza`: numero 90-200 passo 10, 132 (titolo "Distanza tra i marchi"; oggi si chiama `passo`) |
+| Trama | `velocita`; `distanza`: numero 90-200 passo 10, 130 (titolo "Distanza tra i marchi"; oggi si chiama `passo`) |
 
   `velocita` è sempre: numero 0.5-2, passo 0.25, predefinito 1, unità "×", titolo "Velocità".
 - Validazione nel Core (tollerante): un'opzione con tipo sconosciuto, limiti incoerenti, `predefinito` del tipo sbagliato o fuori limiti viene scartata con un avviso nel log; l'animazione resta disponibile. Una tavolozza con colori non validi (non `#rrggbb`) o id ripetuto viene scartata; se non ne resta nessuna vale Energy Italy scritta nel codice.
@@ -84,7 +84,7 @@ Dalla Libreria si sceglie uno sfondo e lo si adatta: colori, funzionamento (velo
 `sfondo.js`, appena caricato e prima di costruire la scena:
 
 - legge `fondo`, `accento`, `secondario` (Energy Italy se mancano o non sono validi; se manca solo il secondario lo ricava dal fondo: stessa tinta, saturazione +20, luminosità +22, limitate a 0-100);
-- calcola in HSL i ruoli: `fondo`, `fondoScuro`, `fondoChiaro`, `accento`, `accentoChiaro`, `accentoPallido`, `secondario`, `secondarioScuro`, `secondarioMedio`, `secondarioChiaro`. Gli scarti di luminosità si scelgono in implementazione perché, con Energy Italy, i ruoli cadano sui colori usati oggi (per esempio `accentoChiaro` circa `#b2e068`, `accentoPallido` circa `#d6f5a0`, `secondarioChiaro` circa `#4a90c8`, `secondarioMedio` circa `#2f78b5`, `secondarioScuro` circa `#173a63`, `fondoScuro` circa `#07111f`);
+- calcola in HSL i ruoli: `fondo`, `fondoScuro`, `fondoChiaro`, `accento`, `accentoChiaro`, `accentoPallido`, `secondario`, `secondarioScuro`, `secondarioMedio`, `secondarioChiaro`, più `velo` (la tinta del fondo con luminosità al massimo 10, per il velo dietro il logo bianco: resta scuro anche con un fondo chiaro). Gli scarti di luminosità si scelgono in implementazione perché, con Energy Italy, i ruoli cadano sui colori usati oggi (per esempio `accentoChiaro` circa `#b2e068`, `accentoPallido` circa `#d6f5a0`, `secondarioChiaro` circa `#4a90c8`, `secondarioMedio` circa `#2f78b5`, `secondarioScuro` circa `#173a63`, `fondoScuro` circa `#07111f`);
 - scrive su `:root` una variabile CSS per ruolo, `--fondo`, `--fondo-scuro`, ..., e la versione a componenti per le trasparenze, `--fondo-rgb: 15, 30, 53` (uso: `rgba(var(--accento-rgb), 0.5)`);
 - offre in JavaScript `Sfondo.colori()` (oggetto con i ruoli come `#rrggbb`) e `Sfondo.rgba(ruolo, alfa)`;
 - aggiunge `Sfondo.interruttore(nome, predefinito)`, che legge `1`/`0` (e accetta `true`/`false`).
@@ -232,7 +232,7 @@ Una sola normalizzazione, usata sia al caricamento sia per i comandi:
 Tutte e sette (onda-di-luce, onde-di-energia, paesaggio-rinnovabile, circuito, aurora, segnale, trama): colori dai ruoli (3.3) in script e stili, opzioni come nel manifest (Trama legge `distanza`, Aurora usa `Sfondo.interruttore('veli', true)`). Per ognuna si controlla nel browser:
 - con Energy Italy, accanto alla versione 1.1.2 (P10);
 - con le altre quattro tavolozze;
-- con una "Personalizzata" chiara (fondo molto luminoso): deve restare leggibile e il logo bianco deve vedersi; dove serve, il velo dietro il logo usa `fondoScuro`.
+- con una "Personalizzata" chiara (fondo molto luminoso): deve restare leggibile e il logo bianco deve vedersi; il velo dietro il logo usa `velo`.
 
 ## 6. Fuori dall'ambito
 
