@@ -99,7 +99,7 @@ public static class Messaggi
         w.WriteString("tipo", "mostra");
         w.WriteString("id", v.Id);
         w.WriteString("tipoVoce", NomiJson.Di(v.Tipo));
-        w.WriteString("url", Catalogo.UrlBase(v));
+        w.WriteString("url", Catalogo.UrlFile(v));
         ScriviScene(w, d);
         w.WriteNumber("dissolvenzaMs", dissolvenzaMs);
         w.WriteBoolean("fineVideo", fineVideo);
@@ -130,7 +130,7 @@ public static class Messaggi
             w.WriteString("tipoVoce", NomiJson.Di(v.Tipo));
             w.WriteString("titolo", v.Titolo);
             w.WriteBoolean("aziendale", v.Aziendale);
-            w.WriteString("url", Catalogo.UrlBase(v));
+            w.WriteString("url", Catalogo.UrlFile(v));
             if (v.DurataSecondi is { } durata) w.WriteNumber("durataSecondi", durata); else w.WriteNull("durataSecondi");
             w.WriteBoolean("disponibile", v.Disponibile);
             w.WriteEndObject();

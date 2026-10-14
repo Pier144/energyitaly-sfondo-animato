@@ -9,7 +9,7 @@ public sealed record Voce(
     string Titolo,
     bool Aziendale,
     string File,
-    IReadOnlyDictionary<string, string> Parametri,
+    IReadOnlyList<Opzione> Opzioni,
     int? DurataSecondi,
     bool Disponibile);
 
@@ -52,8 +52,6 @@ public static class Catalogo
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    static readonly IReadOnlyDictionary<string, string> NessunParametro = new Dictionary<string, string>();
-
     public static (IReadOnlyList<Voce> Voci, IReadOnlyList<string> Avvisi) Carica(
         string manifestJson, DatiLibreria libreria, Func<string, bool> fileEsiste)
     {
@@ -85,7 +83,7 @@ public static class Catalogo
             if (!disponibile) avvisi.Add($"Il file '{v.File}' dello sfondo '{v.Titolo}' non c'è più");
             var titolo = string.IsNullOrWhiteSpace(v.Titolo) ? v.File : v.Titolo;
             var durata = v.DurataSecondi is > 0 ? v.DurataSecondi : null;
-            voci.Add(new Voce(v.Id, tipo.Value, titolo, false, v.File, NessunParametro, durata, disponibile));
+            voci.Add(new Voce(v.Id, tipo.Value, titolo, false, v.File, [], durata, disponibile));
         }
         return (voci, avvisi);
     }
@@ -112,27 +110,109 @@ public static class Catalogo
                     continue;
                 }
                 usati.Add(id);
-                var parametri = new Dictionary<string, string>();
-                if (a.TryGetProperty("parametri", out var p) && p.ValueKind == JsonValueKind.Object)
+                var opzioni = new List<Opzione>();
+                if (a.TryGetProperty("opzioni", out var elencoOpzioni) && elencoOpzioni.ValueKind == JsonValueKind.Array)
                 {
-                    foreach (var kv in p.EnumerateObject())
+                    foreach (var o in elencoOpzioni.EnumerateArray())
                     {
-                        parametri[kv.Name] = kv.Value.ValueKind switch
+                        var opzione = LeggiOpzione(o, id, avvisi);
+                        if (opzione is null) continue;
+                        if (opzioni.Any(x => x.Id == opzione.Id))
                         {
-                            JsonValueKind.String => kv.Value.GetString()!,
-                            JsonValueKind.True => "true",
-                            JsonValueKind.False => "false",
-                            _ => kv.Value.GetRawText()
-                        };
+                            avvisi.Add($"manifest.json: opzione '{opzione.Id}' di '{id}' ripetuta, ignorata");
+                            continue;
+                        }
+                        opzioni.Add(opzione);
                     }
                 }
-                voci.Add(new Voce(id, TipoVoce.Animazione, Testo(a, "titolo") ?? id, true, file!, parametri, null, true));
+                voci.Add(new Voce(id, TipoVoce.Animazione, Testo(a, "titolo") ?? id, true, file!, opzioni, null, true));
             }
         }
         catch (JsonException ex)
         {
             avvisi.Add($"manifest.json non leggibile: {ex.Message}");
         }
+    }
+
+    /// <summary>Un'opzione del manifest; null (con avviso) se non è coerente (spec personalizzazione 3.1).</summary>
+    static Opzione? LeggiOpzione(JsonElement o, string animazione, List<string> avvisi)
+    {
+        var id = Testo(o, "id");
+        var tipo = NomiJson.LeggiTipoOpzione(Testo(o, "tipo"));
+        Opzione? Scarta(string motivo)
+        {
+            avvisi.Add($"manifest.json: opzione '{id}' di '{animazione}' {motivo}, ignorata");
+            return null;
+        }
+        if (string.IsNullOrWhiteSpace(id) || tipo is null) return Scarta("senza id o con tipo sconosciuto");
+        var titolo = Testo(o, "titolo") ?? id;
+        o.TryGetProperty("predefinito", out var p);
+        switch (tipo)
+        {
+            case TipoOpzione.Numero:
+            {
+                double? min = Numero(o, "min"), max = Numero(o, "max"), passo = Numero(o, "passo");
+                double? predefinito = p.ValueKind == JsonValueKind.Number ? p.GetDouble() : null;
+                if (min is null || max is null || passo is null || predefinito is null || min >= max || passo <= 0 ||
+                    predefinito < min || predefinito > max)
+                    return Scarta("con limiti o predefinito non validi");
+                return new Opzione(id, titolo, TipoOpzione.Numero, ValoreOpzione.DiNumero(predefinito.Value),
+                    min, max, passo, Testo(o, "unita"));
+            }
+            case TipoOpzione.Scelta:
+            {
+                var valori = new List<ValoreScelta>();
+                if (o.TryGetProperty("valori", out var elenco) && elenco.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var v in elenco.EnumerateArray())
+                    {
+                        var valore = Testo(v, "valore");
+                        if (valore is null || valori.Any(x => x.Valore == valore)) continue;
+                        valori.Add(new ValoreScelta(valore, Testo(v, "titolo") ?? valore));
+                    }
+                }
+                var predefinito = p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+                if (valori.Count is < 2 or > 4 || predefinito is null || valori.All(x => x.Valore != predefinito))
+                    return Scarta("con valori o predefinito non validi");
+                return new Opzione(id, titolo, TipoOpzione.Scelta, ValoreOpzione.DiTesto(predefinito), Valori: valori);
+            }
+            default:
+                if (p.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return Scarta("con predefinito non valido");
+                return new Opzione(id, titolo, TipoOpzione.Interruttore, ValoreOpzione.DiBooleano(p.GetBoolean()));
+        }
+    }
+
+    static double? Numero(JsonElement e, string nome) =>
+        e.TryGetProperty(nome, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
+
+    /// <summary>Tavolozze del manifest; se non ce n'è nessuna valida, solo Energy Italy (spec personalizzazione 3.1).</summary>
+    public static IReadOnlyList<Tavolozza> LeggiTavolozze(string manifestJson, List<string> avvisi)
+    {
+        var risultato = new List<Tavolozza>();
+        try
+        {
+            using var doc = JsonDocument.Parse(manifestJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("tavolozze", out var elenco) && elenco.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var t in elenco.EnumerateArray())
+                {
+                    var id = Testo(t, "id");
+                    string? fondo = Testo(t, "fondo"), accento = Testo(t, "accento"), secondario = Testo(t, "secondario");
+                    if (string.IsNullOrWhiteSpace(id) || id == Personalizzazioni.Personalizzata || risultato.Any(x => x.Id == id) ||
+                        !Personalizzazioni.ColoreValido(fondo) || !Personalizzazioni.ColoreValido(accento) ||
+                        !Personalizzazioni.ColoreValido(secondario))
+                    {
+                        avvisi.Add($"manifest.json: tavolozza '{id}' non valida, ignorata");
+                        continue;
+                    }
+                    risultato.Add(new Tavolozza(id, Testo(t, "titolo") ?? id, fondo!.ToLowerInvariant(),
+                        accento!.ToLowerInvariant(), secondario!.ToLowerInvariant()));
+                }
+            }
+        }
+        catch (JsonException) { /* l'avviso sul manifest rotto lo dà già Carica */ }
+        return risultato.Count > 0 ? risultato : [Personalizzazioni.EnergyItaly];
     }
 
     static string? Testo(JsonElement e, string nome) =>
@@ -209,13 +289,11 @@ public static class Catalogo
 
     public static string ScriviLibreria(DatiLibreria dati) => JsonSerializer.Serialize(dati, Opzioni);
 
-    /// <summary>URL della voce sugli host virtuali, senza il parametro monitor.</summary>
-    public static string UrlBase(Voce v)
+    /// <summary>URL del file della voce sugli host virtuali, senza parametri: l'URL completo lo costruisce Personalizzazioni.Url.</summary>
+    public static string UrlFile(Voce v)
     {
         if (v.Tipo == TipoVoce.Html) return $"https://{HostPagine}/{Uri.EscapeDataString(v.File)}";
         if (v.Tipo != TipoVoce.Animazione) return $"https://{HostLibreria}/{Uri.EscapeDataString(v.File)}";
-        var url = $"https://{HostApp}/animazioni/{Uri.EscapeDataString(v.File)}";
-        if (v.Parametri.Count == 0) return url;
-        return url + "?" + string.Join('&', v.Parametri.Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
+        return $"https://{HostApp}/animazioni/{Uri.EscapeDataString(v.File)}";
     }
 }

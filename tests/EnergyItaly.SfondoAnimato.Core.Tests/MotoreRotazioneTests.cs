@@ -5,7 +5,7 @@ namespace EnergyItaly.SfondoAnimato.Core.Tests;
 
 public class MotoreRotazioneTests
 {
-    static readonly Dictionary<string, string> Nessuno = [];
+    static readonly IReadOnlyList<Opzione> Nessuno = [];
     static Voce Anim(string id) => new(id, TipoVoce.Animazione, id.ToUpperInvariant(), true, id + ".html", Nessuno, null, true);
     static Voce Video(string id, int? durata) => new(id, TipoVoce.Video, id, false, id + ".mp4", Nessuno, durata, true);
 

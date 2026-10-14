@@ -5,8 +5,8 @@ namespace EnergyItaly.SfondoAnimato.Core.Tests;
 
 public class MessaggiTests
 {
-    static readonly Dictionary<string, string> Parametri = new() { ["durata"] = "16" };
-    static readonly Voce Onda = new("onda-di-luce", TipoVoce.Animazione, "Onda di luce", true, "onda-di-luce.html", Parametri, null, true);
+    static readonly Opzione Durata = new("durata", "Durata", TipoOpzione.Numero, ValoreOpzione.DiNumero(16), 8, 30, 1);
+    static readonly Voce Onda = new("onda-di-luce", TipoVoce.Animazione, "Onda di luce", true, "onda-di-luce.html", [Durata], null, true);
     static readonly Disposizione PcRiferimento = LayoutMonitor.Calcola(
         [new Monitor("DISPLAY2", new Rettangolo(0, 0, 1920, 1080), true), new Monitor("DISPLAY1", new Rettangolo(-1920, 7, 1920, 1080), false)],
         ModoMonitor.Estendi);
@@ -68,7 +68,7 @@ public class MessaggiTests
         Assert.Equal("mostra", m.GetProperty("tipo").GetString());
         Assert.Equal("onda-di-luce", m.GetProperty("id").GetString());
         Assert.Equal("animazione", m.GetProperty("tipoVoce").GetString());
-        Assert.Equal("https://sfondo.energyitaly/animazioni/onda-di-luce.html?durata=16", m.GetProperty("url").GetString());
+        Assert.Equal("https://sfondo.energyitaly/animazioni/onda-di-luce.html", m.GetProperty("url").GetString());
         Assert.Equal("estendi", m.GetProperty("modo").GetString());
         Assert.Equal(2000, m.GetProperty("dissolvenzaMs").GetInt32());
         Assert.True(m.GetProperty("fineVideo").GetBoolean());

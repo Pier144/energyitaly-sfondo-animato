@@ -6,18 +6,40 @@ public class CatalogoTests
 {
     const string Manifest = """
         {
-          "versione": 1,
+          "versione": 2,
+          "tavolozze": [
+            { "id": "energy-italy", "titolo": "Energy Italy", "fondo": "#0F1E35", "accento": "#7ab52a", "secondario": "#1e5b8e" },
+            { "id": "notte", "titolo": "Notte", "fondo": "#05070d", "accento": "#4a90c8", "secondario": "#2b3a55" },
+            { "id": "rotta", "titolo": "Rotta", "fondo": "blu", "accento": "#4a90c8", "secondario": "#2b3a55" }
+          ],
           "animazioni": [
-            { "id": "onda-di-luce", "titolo": "Onda di luce", "file": "onda-di-luce.html", "parametri": { "ampiezza": "lieve", "durata": 16 } },
-            { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "parametri": { "velocita": 1, "veli": 1 } }
+            { "id": "onda-di-luce", "titolo": "Onda di luce", "file": "onda-di-luce.html", "opzioni": [
+              { "id": "ampiezza", "titolo": "Ampiezza", "tipo": "scelta", "predefinito": "lieve",
+                "valori": [ { "valore": "lieve", "titolo": "Lieve" }, { "valore": "forte", "titolo": "Forte" } ] },
+              { "id": "durata", "titolo": "Durata dell'onda", "tipo": "numero", "min": 8, "max": 30, "passo": 1, "predefinito": 16, "unita": "s" }
+            ] },
+            { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "opzioni": [
+              { "id": "veli", "titolo": "Veli di luce", "tipo": "interruttore", "predefinito": true }
+            ] }
           ]
         }
+        """;
+
+    const string ManifestConErrori = """
+        { "versione": 2, "animazioni": [
+          { "id": "aurora", "titolo": "Aurora", "file": "aurora.html", "opzioni": [
+            { "id": "veli", "titolo": "Veli di luce", "tipo": "interruttore", "predefinito": true },
+            { "id": "veli", "titolo": "Doppia", "tipo": "interruttore", "predefinito": false },
+            { "id": "rotta", "titolo": "Rotta", "tipo": "numero", "min": 5, "max": 1, "passo": 1, "predefinito": 2 },
+            { "id": "scelta-corta", "titolo": "Corta", "tipo": "scelta", "predefinito": "a", "valori": [ { "valore": "a" } ] },
+            { "id": "strana", "titolo": "Strana", "tipo": "colore", "predefinito": 1 }
+          ] } ] }
         """;
 
     static DatiLibreria Libreria(params VoceLibreria[] voci) => new() { Voci = voci.ToList() };
 
     [Fact]
-    public void Carica_SoloManifest_VociAziendaliConParametriTestuali()
+    public void Carica_Manifest2_VociAziendaliConOpzioni()
     {
         var (voci, avvisi) = Catalogo.Carica(Manifest, new DatiLibreria(), _ => true);
 
@@ -27,16 +49,48 @@ public class CatalogoTests
         Assert.Equal(TipoVoce.Animazione, onda.Tipo);
         Assert.True(onda.Aziendale);
         Assert.True(onda.Disponibile);
-        Assert.Equal("lieve", onda.Parametri["ampiezza"]);
-        Assert.Equal("16", onda.Parametri["durata"]);
+        Assert.Equal(new[] { "ampiezza", "durata" }, onda.Opzioni.Select(o => o.Id));
+        Assert.Equal(TipoOpzione.Scelta, onda.Opzioni[0].Tipo);
+        Assert.Equal("lieve", onda.Opzioni[0].Predefinito.Testo);
+        Assert.Equal(2, onda.Opzioni[0].Valori!.Count);
+        Assert.Equal(16, onda.Opzioni[1].Predefinito.Numero);
+        Assert.Equal("s", onda.Opzioni[1].Unita);
+        Assert.True(voci[1].Opzioni[0].Predefinito.Booleano);
     }
 
     [Fact]
-    public void UrlBase_AnimazioneConParametri()
+    public void Carica_OpzioniNonValide_ScartateConAvviso()
+    {
+        var (voci, avvisi) = Catalogo.Carica(ManifestConErrori, new DatiLibreria(), _ => true);
+
+        Assert.Equal(new[] { "veli" }, Assert.Single(voci).Opzioni.Select(o => o.Id));
+        Assert.Equal(4, avvisi.Count);
+        Assert.All(avvisi, a => Assert.Contains("aurora", a));
+    }
+
+    [Fact]
+    public void LeggiTavolozze_ScartaLeNonValideEMetteInMinuscolo()
+    {
+        var avvisi = new List<string>();
+        var t = Catalogo.LeggiTavolozze(Manifest, avvisi);
+
+        Assert.Equal(new[] { "energy-italy", "notte" }, t.Select(x => x.Id));
+        Assert.Equal("#0f1e35", t[0].Fondo);
+        Assert.Contains(avvisi, a => a.Contains("rotta"));
+    }
+
+    [Fact]
+    public void LeggiTavolozze_NessunaValida_EnergyItalyDelCodice()
+    {
+        var t = Catalogo.LeggiTavolozze("""{ "versione": 2, "animazioni": [] }""", []);
+        Assert.Equal(Personalizzazioni.EnergyItaly, Assert.Single(t));
+    }
+
+    [Fact]
+    public void UrlFile_SoloIlFile()
     {
         var (voci, _) = Catalogo.Carica(Manifest, new DatiLibreria(), _ => true);
-
-        Assert.Equal("https://sfondo.energyitaly/animazioni/onda-di-luce.html?ampiezza=lieve&durata=16", Catalogo.UrlBase(voci[0]));
+        Assert.Equal("https://sfondo.energyitaly/animazioni/onda-di-luce.html", Catalogo.UrlFile(voci[0]));
     }
 
     [Fact]
@@ -53,14 +107,14 @@ public class CatalogoTests
         Assert.Equal(TipoVoce.Immagine, voci[2].Tipo);
         Assert.False(voci[2].Aziendale);
         Assert.Equal(160, voci[3].DurataSecondi);
-        Assert.Equal("https://libreria.energyitaly/clip-def456.mp4", Catalogo.UrlBase(voci[3]));
+        Assert.Equal("https://libreria.energyitaly/clip-def456.mp4", Catalogo.UrlFile(voci[3]));
     }
 
     [Fact]
-    public void UrlBase_CodificaIlNomeFile()
+    public void UrlFile_CodificaIlNomeFile()
     {
-        var v = new Voce("u-x-aaaaaa", TipoVoce.Html, "X", false, "pagina con spazi.html", new Dictionary<string, string>(), null, true);
-        Assert.Equal("https://pagine.energyitaly/pagina%20con%20spazi.html", Catalogo.UrlBase(v));
+        var v = new Voce("u-x-aaaaaa", TipoVoce.Html, "X", false, "pagina con spazi.html", [], null, true);
+        Assert.Equal("https://pagine.energyitaly/pagina%20con%20spazi.html", Catalogo.UrlFile(v));
     }
 
     [Fact]
