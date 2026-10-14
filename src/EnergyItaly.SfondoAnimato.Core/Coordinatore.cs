@@ -202,7 +202,7 @@ public sealed class Coordinatore
     {
         if (!playerPronto || motore.Corrente is not { } c) return;
         bool fineVideo = imp.FineVideo && imp.RotazioneAttiva;
-        player.Invia(Messaggi.Mostra(c, disposizione, dissolvenzaMs, fineVideo));
+        player.Invia(Messaggi.Mostra(c, Catalogo.UrlFile(c), Riempimento.Riempi, disposizione, dissolvenzaMs, fineVideo));
     }
 
     // ---------- Finestra principale ----------

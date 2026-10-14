@@ -5,7 +5,8 @@ using System.Text.Json;
 namespace EnergyItaly.SfondoAnimato.Core;
 
 /// <summary>Comando mandato dalla finestra principale.</summary>
-public sealed record ComandoApp(string Tipo, string? Id, IReadOnlyList<string>? Ids, ModificheImpostazioni? Modifiche);
+public sealed record ComandoApp(string Tipo, string? Id, IReadOnlyList<string>? Ids, ModificheImpostazioni? Modifiche,
+    ModifichePersonalizzazione? Personalizzazione = null);
 
 /// <summary>Evento mandato dal player dello sfondo.</summary>
 public sealed record EventoPlayer(string Tipo, string? Id, string? Messaggio, double? Secondi);
@@ -23,7 +24,8 @@ public sealed record StatoVista(
     long? TotaleMs,
     bool ContoAttivo,
     bool AttendeFineVideo,
-    Disposizione Disposizione);
+    Disposizione Disposizione,
+    IReadOnlyList<Tavolozza>? Tavolozze = null);
 
 /// <summary>Lettura e scrittura dei messaggi JSON (spec sezione 7).</summary>
 public static class Messaggi
@@ -43,7 +45,9 @@ public static class Messaggi
                 ids = a.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!).ToList();
 
             ModificheImpostazioni? modifiche = null;
-            if (r.TryGetProperty("modifiche", out var m) && m.ValueKind == JsonValueKind.Object)
+            if (r.TryGetProperty("modifiche", out var m) && m.ValueKind == JsonValueKind.Object && tipo == "personalizza")
+                return new ComandoApp(tipo, Testo(r, "id"), ids, null, LeggiModifichePersonalizzazione(m));
+            if (r.TryGetProperty("modifiche", out m) && m.ValueKind == JsonValueKind.Object)
             {
                 modifiche = new ModificheImpostazioni(
                     IntervalloValore: Intero(m, "intervalloValore"),
@@ -63,6 +67,31 @@ public static class Messaggi
         {
             return null;
         }
+    }
+
+    /// <summary>Oggetto "modifiche" del comando "personalizza" (spec personalizzazione 4.4).</summary>
+    static ModifichePersonalizzazione LeggiModifichePersonalizzazione(JsonElement m)
+    {
+        Dictionary<string, ValoreOpzione>? opzioni = null;
+        if (m.TryGetProperty("opzioni", out var o) && o.ValueKind == JsonValueKind.Object)
+        {
+            opzioni = [];
+            foreach (var kv in o.EnumerateObject())
+            {
+                ValoreOpzione? valore = kv.Value.ValueKind switch
+                {
+                    JsonValueKind.Number => ValoreOpzione.DiNumero(kv.Value.GetDouble()),
+                    JsonValueKind.String => ValoreOpzione.DiTesto(kv.Value.GetString()!),
+                    JsonValueKind.True => ValoreOpzione.DiBooleano(true),
+                    JsonValueKind.False => ValoreOpzione.DiBooleano(false),
+                    _ => null
+                };
+                // Un valore di tipo impossibile resta come testo vuoto: Applica lo rifiuta con un errore chiaro.
+                opzioni[kv.Name] = valore ?? ValoreOpzione.DiTesto("");
+            }
+        }
+        return new ModifichePersonalizzazione(Testo(m, "tavolozza"), Testo(m, "fondo"), Testo(m, "accento"), opzioni,
+            Testo(m, "modoMonitor"), Testo(m, "riempimento"));
     }
 
     public static EventoPlayer? LeggiEventoPlayer(string json)
@@ -94,12 +123,13 @@ public static class Messaggi
         return v.TryGetInt32(out var n) ? n : 0;
     }
 
-    public static string Mostra(Voce v, Disposizione d, int dissolvenzaMs, bool fineVideo) => Scrivi(w =>
+    public static string Mostra(Voce v, string url, Riempimento riempimento, Disposizione d, int dissolvenzaMs, bool fineVideo) => Scrivi(w =>
     {
         w.WriteString("tipo", "mostra");
         w.WriteString("id", v.Id);
         w.WriteString("tipoVoce", NomiJson.Di(v.Tipo));
-        w.WriteString("url", Catalogo.UrlFile(v));
+        w.WriteString("url", url);
+        w.WriteString("riempimento", NomiJson.Di(riempimento));
         ScriviScene(w, d);
         w.WriteNumber("dissolvenzaMs", dissolvenzaMs);
         w.WriteBoolean("fineVideo", fineVideo);
@@ -122,17 +152,42 @@ public static class Messaggi
     public static string Stato(StatoVista s) => Scrivi(w =>
     {
         w.WriteString("tipo", "stato");
+        var tavolozze = s.Tavolozze ?? [Personalizzazioni.EnergyItaly];
         w.WriteStartArray("voci");
         foreach (var v in s.Voci)
         {
+            var p = s.Impostazioni.Personalizzazioni.GetValueOrDefault(v.Id);
             w.WriteStartObject();
             w.WriteString("id", v.Id);
             w.WriteString("tipoVoce", NomiJson.Di(v.Tipo));
             w.WriteString("titolo", v.Titolo);
             w.WriteBoolean("aziendale", v.Aziendale);
-            w.WriteString("url", Catalogo.UrlFile(v));
+            w.WriteString("url", Personalizzazioni.Url(v, p, tavolozze));
             if (v.DurataSecondi is { } durata) w.WriteNumber("durataSecondi", durata); else w.WriteNull("durataSecondi");
             w.WriteBoolean("disponibile", v.Disponibile);
+            w.WriteStartArray("opzioni");
+            foreach (var o in v.Opzioni) ScriviOpzione(w, o);
+            w.WriteEndArray();
+            if (p is null) w.WriteNull("personalizzazione");
+            else
+            {
+                w.WritePropertyName("personalizzazione");
+                Personalizzazioni.Scrivi(w, p);
+            }
+            w.WriteString("modoMonitor", NomiJson.Di(Personalizzazioni.ModoEffettivo(p, s.Impostazioni.ModoMonitor)));
+            w.WriteString("riempimento", NomiJson.Di(Personalizzazioni.RiempimentoEffettivo(p)));
+            w.WriteEndObject();
+        }
+        w.WriteEndArray();
+        w.WriteStartArray("tavolozze");
+        foreach (var t in tavolozze)
+        {
+            w.WriteStartObject();
+            w.WriteString("id", t.Id);
+            w.WriteString("titolo", t.Titolo);
+            w.WriteString("fondo", t.Fondo);
+            w.WriteString("accento", t.Accento);
+            w.WriteString("secondario", t.Secondario);
             w.WriteEndObject();
         }
         w.WriteEndArray();
@@ -184,6 +239,32 @@ public static class Messaggi
         w.WriteEndArray();
         ScriviScene(w, d);
     });
+
+    static void ScriviOpzione(Utf8JsonWriter w, Opzione o)
+    {
+        w.WriteStartObject();
+        w.WriteString("id", o.Id);
+        w.WriteString("titolo", o.Titolo);
+        w.WriteString("tipo", NomiJson.Di(o.Tipo));
+        if (o.Min is { } min) w.WriteNumber("min", min);
+        if (o.Max is { } max) w.WriteNumber("max", max);
+        if (o.Passo is { } passo) w.WriteNumber("passo", passo);
+        if (o.Unita is not null) w.WriteString("unita", o.Unita);
+        if (o.Valori is not null)
+        {
+            w.WriteStartArray("valori");
+            foreach (var x in o.Valori)
+            {
+                w.WriteStartObject();
+                w.WriteString("valore", x.Valore);
+                w.WriteString("titolo", x.Titolo);
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+        }
+        Personalizzazioni.ScriviValore(w, "predefinito", o.Predefinito);
+        w.WriteEndObject();
+    }
 
     static void ScriviScene(Utf8JsonWriter w, Disposizione d)
     {
