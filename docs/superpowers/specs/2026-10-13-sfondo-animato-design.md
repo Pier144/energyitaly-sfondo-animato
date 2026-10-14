@@ -23,7 +23,7 @@ Criterio di successo: quello del PRD (sezione 1) più i test nuovi della sezione
 | D7 | La "rotazione" diventa una **playlist ordinata** (riordinabile trascinando); deve contenere almeno uno sfondo | Il PRD aveva una lista di caselle |
 | D8 | **Pausa manuale** ferma anche il conto alla rovescia; le **pause automatiche** no (RF-23 resta valido per quelle) | Chiarimento |
 | D9 | "Precedente" torna allo sfondo mostrato prima (storico, massimo 20), non a quello prima in playlist | Nuovo |
-| D10 | Barra del titolo **nativa di Windows** in tema scuro; l'intestazione HTML non disegna i pulsanti della finestra | Il design B li disegnava in HTML |
+| D10 | Barra del titolo **nativa di Windows** in tema scuro; l'intestazione HTML non disegna i pulsanti della finestra | Il design B li disegnava in HTML. Superata da D12 in `2026-10-14-finestra-custom-design.md`. |
 | D11 | Chiudere la finestra la nasconde: il programma resta nell'area di notifica. Si esce solo da "Esci" nel menu dell'icona | Nuovo |
 | D12 | Sfondo statico di riserva (RF-07) rimandato a una fase successiva | Era "S" nel PRD |
 
