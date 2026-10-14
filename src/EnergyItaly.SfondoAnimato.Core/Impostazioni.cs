@@ -18,10 +18,31 @@ public sealed record Impostazioni
     public bool AggiornamentiAutomatici { get; init; } = true;
     public string? UltimaVoce { get; init; }
 
+    /// <summary>
+    /// Sfondi aziendali che il programma conosceva all'ultimo salvataggio: quelli arrivati dopo con un aggiornamento
+    /// entrano in coda alla playlist (vedi <see cref="AccogliNuoviSfondi"/>). Null se non c'è ancora un elenco.
+    /// </summary>
+    public IReadOnlyList<string>? SfondiAziendaliVisti { get; init; }
+
     /// <summary>Durata dell'intervallo di cambio; null se la rotazione è spenta ("Mai").</summary>
     public TimeSpan? Intervallo => !RotazioneAttiva
         ? null
         : IntervalloUnita == UnitaTempo.Ore ? TimeSpan.FromHours(IntervalloValore) : TimeSpan.FromMinutes(IntervalloValore);
+
+    /// <summary>
+    /// Mette in coda alla playlist gli sfondi aziendali mai visti che la playlist predefinita prevede, e segna come visti
+    /// tutti quelli attuali. Uno sfondo già visto e tolto dall'utente non ritorna; senza elenco dei visti non si aggiunge niente.
+    /// </summary>
+    public (Impostazioni Risultato, IReadOnlyList<string> Aggiunti) AccogliNuoviSfondi(
+        IReadOnlyList<string> aziendali, IReadOnlyList<string> playlistPredefinita)
+    {
+        var visti = SfondiAziendaliVisti ?? aziendali;
+        var aggiunti = playlistPredefinita
+            .Where(id => aziendali.Contains(id) && !visti.Contains(id) && !Playlist.Contains(id))
+            .Distinct()
+            .ToList();
+        return (this with { Playlist = [.. Playlist, .. aggiunti], SfondiAziendaliVisti = aziendali.ToList() }, aggiunti);
+    }
 
     public static int Massimo(UnitaTempo unita) => unita == UnitaTempo.Ore ? 24 : 1440;
 

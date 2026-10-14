@@ -78,6 +78,31 @@ public class CoordinatoreTests
     }
 
     [Fact]
+    public void Avvio_NuovoSfondoAziendale_EntraInCodaAllaPlaylistSalvata()
+    {
+        archivio.Impostazioni = """{ "versione": 2, "playlist": ["b"], "sfondiAziendaliVisti": ["a", "b"] }""";
+
+        var c = Avvia();
+
+        Assert.Equal(new[] { "b", "c" }, c.Impostazioni.Playlist);
+        Assert.Contains("\"sfondiAziendaliVisti\": [", archivio.Impostazioni);
+        Assert.Contains(log.Righe, r => r.Contains("Nuovi sfondi aziendali in playlist: c"));
+
+        // Al riavvio "c" è già visto: se l'utente lo toglie non ricompare.
+        archivio.Impostazioni = """{ "versione": 2, "playlist": ["b"], "sfondiAziendaliVisti": ["a", "b", "c"] }""";
+        Assert.Equal(new[] { "b" }, Avvia().Impostazioni.Playlist);
+    }
+
+    [Fact]
+    public void Avvio_PrimaInstallazione_PlaylistPredefinitaEVistiSalvati()
+    {
+        var c = Avvia();
+
+        Assert.Equal(new[] { "a", "b", "c" }, c.Impostazioni.Playlist);
+        Assert.Equal(new[] { "a", "b", "c" }, c.Impostazioni.SfondiAziendaliVisti);
+    }
+
+    [Fact]
     public void Avvio_ImpostazioniRotte_LogEValoriPredefiniti()
     {
         archivio.Impostazioni = "{ rotto";
@@ -364,7 +389,7 @@ public class CoordinatoreTests
     {
         archivio.Libreria = """{ "versione": 1, "voci": [ { "id": "u-v-aaaaaa", "tipo": "video", "titolo": "V", "file": "v.mp4", "durataSecondi": 60 } ] }""";
         archivio.FileLibreria.Add("v.mp4");
-        archivio.Impostazioni = """{ "versione": 2, "playlist": ["a", "u-v-aaaaaa"], "ultimaVoce": "a" }""";
+        archivio.Impostazioni = """{ "versione": 2, "playlist": ["a", "u-v-aaaaaa"], "ultimaVoce": "a", "sfondiAziendaliVisti": ["a", "b", "c"] }""";
         var c = Avvia();
         Assert.Equal("u-v-aaaaaa", c.Corrente?.Id);
         Assert.True(player.Ultimo("mostra").GetProperty("fineVideo").GetBoolean());

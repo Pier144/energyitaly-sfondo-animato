@@ -189,6 +189,79 @@ public class ImpostazioniTests
     }
 
     [Fact]
+    public void SfondiAziendaliVisti_AndataERitorno()
+    {
+        var originale = Codice() with { SfondiAziendaliVisti = ["onda-di-luce", "aurora"] };
+
+        var riletta = ArchivioImpostazioni.Carica(ArchivioImpostazioni.Scrivi(originale), Codice(), Validi, []);
+
+        Assert.Equal(new[] { "onda-di-luce", "aurora" }, riletta.SfondiAziendaliVisti);
+    }
+
+    [Fact]
+    public void SfondiAziendaliVisti_FileUtenteSenzaCampo_QuelliDellaVersione110()
+    {
+        var i = ArchivioImpostazioni.Carica("""{ "versione": 2, "playlist": ["aurora"] }""", Codice(), Validi, []);
+
+        Assert.Equal(new[] { "onda-di-luce", "onde-di-energia", "paesaggio-rinnovabile", "circuito", "aurora" }, i.SfondiAziendaliVisti);
+    }
+
+    [Fact]
+    public void SfondiAziendaliVisti_SenzaFileUtente_Nessuno()
+    {
+        Assert.Null(ArchivioImpostazioni.Carica(null, Codice(), Validi, []).SfondiAziendaliVisti);
+    }
+
+    [Fact]
+    public void SfondiAziendaliVisti_NonValido_AvvisoEQuelliDellaVersione110()
+    {
+        var avvisi = new List<string>();
+
+        var i = ArchivioImpostazioni.Carica("""{ "versione": 2, "sfondiAziendaliVisti": "aurora" }""", Codice(), Validi, avvisi);
+
+        Assert.Equal(5, i.SfondiAziendaliVisti?.Count);
+        Assert.Contains(avvisi, a => a.Contains("sfondiAziendaliVisti"));
+    }
+
+    [Fact]
+    public void AccogliNuoviSfondi_AggiungeInCodaSoloINuoviDellaPlaylistPredefinita()
+    {
+        var i = Codice() with { Playlist = ["aurora"], SfondiAziendaliVisti = ["onda-di-luce", "aurora"] };
+        string[] aziendali = ["onda-di-luce", "aurora", "segnale", "trama", "nascosto"];
+        string[] predefinita = ["segnale", "onda-di-luce", "aurora", "trama"];
+
+        var (r, aggiunti) = i.AccogliNuoviSfondi(aziendali, predefinita);
+
+        // onda-di-luce era già stata vista e l'utente l'ha tolta: non torna. "nascosto" non è nella playlist predefinita.
+        Assert.Equal(new[] { "segnale", "trama" }, aggiunti);
+        Assert.Equal(new[] { "aurora", "segnale", "trama" }, r.Playlist);
+        Assert.Equal(aziendali, r.SfondiAziendaliVisti);
+    }
+
+    [Fact]
+    public void AccogliNuoviSfondi_GiaInPlaylist_NonDuplicato()
+    {
+        var i = Codice() with { Playlist = ["segnale", "aurora"], SfondiAziendaliVisti = ["aurora"] };
+
+        var (r, aggiunti) = i.AccogliNuoviSfondi(["aurora", "segnale"], ["aurora", "segnale"]);
+
+        Assert.Empty(aggiunti);
+        Assert.Equal(new[] { "segnale", "aurora" }, r.Playlist);
+    }
+
+    [Fact]
+    public void AccogliNuoviSfondi_SenzaElencoVisti_NonAggiungeNiente()
+    {
+        var i = Codice() with { Playlist = ["aurora"] };
+
+        var (r, aggiunti) = i.AccogliNuoviSfondi(["aurora", "segnale"], ["aurora", "segnale"]);
+
+        Assert.Empty(aggiunti);
+        Assert.Equal(new[] { "aurora" }, r.Playlist);
+        Assert.Equal(new[] { "aurora", "segnale" }, r.SfondiAziendaliVisti);
+    }
+
+    [Fact]
     public void Applica_ValoreFuoriIntervallo_Errore()
     {
         var i = Codice();

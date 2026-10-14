@@ -66,6 +66,9 @@ public sealed class Coordinatore
         predefinite = ArchivioImpostazioni.Predefinite(predefiniteJson, idValidi, playlistDiBase, avvisi);
         imp = ArchivioImpostazioni.Carica(Leggi(archivio.LeggiImpostazioni, "impostazioni.json"), predefinite, idValidi, avvisi);
         foreach (var a in avvisi) log.Avviso(a);
+        (imp, var nuovi) = imp.AccogliNuoviSfondi(playlistDiBase, predefinite.Playlist);
+        if (nuovi.Count > 0) log.Info($"Nuovi sfondi aziendali in playlist: {string.Join(", ", nuovi)}");
+        predefinite = predefinite with { SfondiAziendaliVisti = playlistDiBase };
 
         monitor = monitorIniziali;
         disposizione = LayoutMonitor.Calcola(monitor, imp.ModoMonitor);

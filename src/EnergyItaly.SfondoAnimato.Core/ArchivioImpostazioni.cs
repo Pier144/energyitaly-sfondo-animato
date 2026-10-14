@@ -12,6 +12,10 @@ public static class ArchivioImpostazioni
 {
     public const int Versione = 2;
 
+    /// <summary>Sfondi aziendali fino alla versione 1.1.0, che non salvava sfondiAziendaliVisti.</summary>
+    public static readonly IReadOnlyList<string> SfondiAziendaliFinoA110 =
+        ["onda-di-luce", "onde-di-energia", "paesaggio-rinnovabile", "circuito", "aurora"];
+
     /// <summary>Valori del codice, eventualmente sovrascritti da impostazioni-predefinite.json (RF-52).</summary>
     public static Impostazioni Predefinite(string? jsonAziendale, IReadOnlyCollection<string> idValidi,
         IReadOnlyList<string> playlistDiBase, List<string> avvisi)
@@ -19,7 +23,7 @@ public static class ArchivioImpostazioni
         var codice = new Impostazioni { Playlist = playlistDiBase.ToList() };
         return string.IsNullOrWhiteSpace(jsonAziendale)
             ? codice
-            : Leggi(jsonAziendale, codice, idValidi, avvisi, "impostazioni-predefinite.json");
+            : Leggi(jsonAziendale, codice, idValidi, avvisi, "impostazioni-predefinite.json", codice.SfondiAziendaliVisti);
     }
 
     /// <summary>Impostazioni dell'utente sopra le predefinite.</summary>
@@ -27,9 +31,10 @@ public static class ArchivioImpostazioni
         IReadOnlyCollection<string> idValidi, List<string> avvisi) =>
         string.IsNullOrWhiteSpace(jsonUtente)
             ? predefinite
-            : Leggi(jsonUtente, predefinite, idValidi, avvisi, "impostazioni.json");
+            : Leggi(jsonUtente, predefinite, idValidi, avvisi, "impostazioni.json", SfondiAziendaliFinoA110);
 
-    static Impostazioni Leggi(string json, Impostazioni b, IReadOnlyCollection<string> idValidi, List<string> avvisi, string nome)
+    static Impostazioni Leggi(string json, Impostazioni b, IReadOnlyCollection<string> idValidi, List<string> avvisi, string nome,
+        IReadOnlyList<string>? vistiSeManca)
     {
         JsonElement r;
         try
@@ -68,7 +73,8 @@ public static class ArchivioImpostazioni
             PausaABatteria = lettore.Booleano("pausaABatteria", b.PausaABatteria),
             AvvioConWindows = lettore.Booleano("avvioConWindows", b.AvvioConWindows),
             AggiornamentiAutomatici = lettore.Booleano("aggiornamentiAutomatici", b.AggiornamentiAutomatici),
-            UltimaVoce = ultima
+            UltimaVoce = ultima,
+            SfondiAziendaliVisti = LeggiVisti(r, vistiSeManca, nome, avvisi)
         };
     }
 
@@ -86,6 +92,15 @@ public static class ArchivioImpostazioni
             return (unita, n);
         avvisi.Add($"{nome}: valore non valido per 'intervallo', uso {b.IntervalloValore} {NomiJson.Di(b.IntervalloUnita)}");
         return (b.IntervalloUnita, b.IntervalloValore);
+    }
+
+    static IReadOnlyList<string>? LeggiVisti(JsonElement r, IReadOnlyList<string>? seManca, string nome, List<string> avvisi)
+    {
+        if (!r.TryGetProperty("sfondiAziendaliVisti", out var v)) return seManca;
+        if (v.ValueKind == JsonValueKind.Array && v.EnumerateArray().All(e => e.ValueKind == JsonValueKind.String))
+            return v.EnumerateArray().Select(e => e.GetString()!).Distinct().ToList();
+        avvisi.Add($"{nome}: 'sfondiAziendaliVisti' non valido, lo ignoro");
+        return seManca;
     }
 
     static IReadOnlyList<string> LeggiPlaylist(JsonElement r, IReadOnlyList<string> base_, IReadOnlyCollection<string> idValidi, string nome, List<string> avvisi)
@@ -165,6 +180,12 @@ public static class ArchivioImpostazioni
             w.WriteBoolean("avvioConWindows", i.AvvioConWindows);
             w.WriteBoolean("aggiornamentiAutomatici", i.AggiornamentiAutomatici);
             if (i.UltimaVoce is null) w.WriteNull("ultimaVoce"); else w.WriteString("ultimaVoce", i.UltimaVoce);
+            if (i.SfondiAziendaliVisti is not null)
+            {
+                w.WriteStartArray("sfondiAziendaliVisti");
+                foreach (var id in i.SfondiAziendaliVisti) w.WriteStringValue(id);
+                w.WriteEndArray();
+            }
             w.WriteEndObject();
         }
         return Encoding.UTF8.GetString(flusso.ToArray());
