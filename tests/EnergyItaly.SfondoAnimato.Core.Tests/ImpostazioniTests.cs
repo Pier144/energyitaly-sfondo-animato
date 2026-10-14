@@ -316,6 +316,17 @@ public class ImpostazioniTests
     }
 
     [Fact]
+    public void Personalizzazioni_NumeroNonRappresentabile_AvvisoENessunErrore()
+    {
+        var avvisi = new List<string>();
+        var i = ArchivioImpostazioni.Carica("""{ "versione": 2, "personalizzazioni": { "aurora": { "opzioni": { "velocita": 1e400 } } } }""",
+            Codice(), Validi, avvisi);
+
+        Assert.Empty(i.Personalizzazioni);
+        Assert.Contains(avvisi, a => a.Contains("velocita"));
+    }
+
+    [Fact]
     public void Personalizzazioni_IgnorateNelFileAziendale()
     {
         var i = ArchivioImpostazioni.Predefinite("""{ "versione": 2, "personalizzazioni": { "aurora": { "tavolozza": "notte" } } }""", Validi, Base, []);

@@ -130,14 +130,7 @@ public static class ArchivioImpostazioni
                 {
                     foreach (var kv in op.EnumerateObject())
                     {
-                        ValoreOpzione? valore = kv.Value.ValueKind switch
-                        {
-                            JsonValueKind.Number => ValoreOpzione.DiNumero(kv.Value.GetDouble()),
-                            JsonValueKind.String => ValoreOpzione.DiTesto(kv.Value.GetString()!),
-                            JsonValueKind.True => ValoreOpzione.DiBooleano(true),
-                            JsonValueKind.False => ValoreOpzione.DiBooleano(false),
-                            _ => null
-                        };
+                        var valore = Personalizzazioni.ValoreDaJson(kv.Value);
                         if (valore is null) avvisi.Add($"{dove}: opzione '{kv.Name}' non valida, tolta");
                         else opzioni[kv.Name] = valore;
                     }

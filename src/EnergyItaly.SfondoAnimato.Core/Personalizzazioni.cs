@@ -242,6 +242,16 @@ public static class Personalizzazioni
         w.WriteEndObject();
     }
 
+    /// <summary>Un valore JSON come valore di opzione; null se il tipo non va bene o il numero non è rappresentabile.</summary>
+    public static ValoreOpzione? ValoreDaJson(JsonElement e) => e.ValueKind switch
+    {
+        JsonValueKind.Number => e.TryGetDouble(out var n) && double.IsFinite(n) ? ValoreOpzione.DiNumero(n) : null,
+        JsonValueKind.String => ValoreOpzione.DiTesto(e.GetString()!),
+        JsonValueKind.True => ValoreOpzione.DiBooleano(true),
+        JsonValueKind.False => ValoreOpzione.DiBooleano(false),
+        _ => null
+    };
+
     public static void ScriviValore(Utf8JsonWriter w, string nome, ValoreOpzione v)
     {
         if (v.Numero is { } n) w.WriteNumber(nome, n);

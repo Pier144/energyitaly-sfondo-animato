@@ -14,6 +14,8 @@ window.BarraSfondo = function (d) {
   };
   // Mentre si trascina, l'anteprima si ricarica al massimo ogni ATTESA_ANTEPRIMA_MS.
   const ATTESA_ANTEPRIMA_MS = 250;
+  // Le conferme di un controllo arrivate entro ATTESA_CONFERMA_MS partono come un solo "personalizza".
+  const ATTESA_CONFERMA_MS = 300;
 
   let id = null;
   let stato = null;
@@ -24,7 +26,14 @@ window.BarraSfondo = function (d) {
   let osservatore = null;
   const parti = {};
 
-  const nodo = el('aside', { class: 'pannello-sfondo', 'aria-labelledby': 'pannello-titolo', hidden: true });
+  // Struttura fissa: si ridisegnano testa, controlli e piede; il riquadro dell'anteprima non lascia mai la pagina,
+  // altrimenti l'iframe si ricaricherebbe a ogni conferma.
+  const testa = el('div', { class: 'pannello-testa' });
+  const bloccoAnteprima = el('div');
+  const controlli = el('div', { class: 'pannello-controlli' });
+  const piede = el('div', { class: 'pannello-piede' });
+  const nodo = el('aside', { class: 'pannello-sfondo', 'aria-labelledby': 'pannello-titolo', hidden: true },
+    testa, el('div', { class: 'pannello-corpo' }, bloccoAnteprima, controlli), piede);
   nodo.addEventListener('keydown', (e) => { if (e.key === 'Escape') chiudi(); });
 
   function voce() {
@@ -152,21 +161,30 @@ window.BarraSfondo = function (d) {
 
   // Un controllo che si trascina: la bozza guida l'anteprima, la conferma manda il comando,
   // e se si esce senza confermare (rilascio sul valore di partenza) la bozza si butta.
+  // Le conferme ravvicinate (frecce della tastiera tenute premute) partono come un solo comando.
   function collegaTrascinabile(campo, chiave, alCambio, conferma) {
+    let attesaConferma = null;
     campo.addEventListener('input', () => {
       bozza[chiave] = alCambio();
       aggiornaAnteprima(false);
     });
     campo.addEventListener('change', () => {
       aggiornaAnteprima(true);
-      delete bozza[chiave];
-      conferma();
+      clearTimeout(attesaConferma);
+      attesaConferma = setTimeout(() => {
+        delete bozza[chiave];
+        conferma();
+      }, ATTESA_CONFERMA_MS);
     });
     campo.addEventListener('blur', () => {
-      if (!(chiave in bozza)) return;
-      delete bozza[chiave];
-      costruitaPer = null;
-      aggiorna(stato);
+      // Dopo il click che ha tolto il fuoco: ricostruire subito sostituirebbe il pulsante cliccato.
+      // Si aspetta anche l'eventuale conferma in corso: se è partita, la bozza è già vuota.
+      setTimeout(() => {
+        if (!(chiave in bozza)) return;
+        delete bozza[chiave];
+        costruitaPer = null;
+        aggiorna(stato);
+      }, ATTESA_CONFERMA_MS + 50);
     });
   }
 
@@ -240,7 +258,7 @@ window.BarraSfondo = function (d) {
   function costruisci(v) {
     costruitaPer = firma(v);
     const spento = !v.disponibile;
-    // Il riquadro dell'anteprima resta lo stesso finché la barra è aperta: ridisegnare i controlli non la ricarica.
+    // Il riquadro dell'anteprima resta lo stesso finché la barra è aperta su questo sfondo.
     if (!parti.palco) {
       parti.palco = el('div', { class: 'pannello-palco' });
       chiaveAnteprima = null;
@@ -250,9 +268,10 @@ window.BarraSfondo = function (d) {
         if (f) f.style.transform = `scale(${parti.palco.clientWidth / 1920})`;
       });
       osservatore.observe(parti.palco);
+      bloccoAnteprima.replaceChildren(parti.palco, el('p', { class: 'mini nota-anteprima' }, 'ANTEPRIMA · le modifiche si salvano da sole'));
     }
 
-    const corpo = [el('div', null, parti.palco, el('p', { class: 'mini nota-anteprima' }, 'ANTEPRIMA · le modifiche si salvano da sole'))];
+    const corpo = [];
     if (v.tipoVoce === 'animazione') {
       corpo.push(sezioneColori(v, spento));
       if (v.opzioni.length) corpo.push(gruppo('FUNZIONAMENTO', v.opzioni.map((o) => controlloOpzione(v, o, spento))));
@@ -269,14 +288,13 @@ window.BarraSfondo = function (d) {
       'Ripristina questo sfondo');
     parti.mostra = el('button', { type: 'button', class: 'bottone-verde', onclick: () => invia({ tipo: 'mostra', id }) }, 'Mostra ora');
     const inPlaylist = stato.playlist.includes(v.id);
-    nodo.replaceChildren(
-      el('div', { class: 'pannello-testa' },
-        el('div', null,
-          el('h3', { id: 'pannello-titolo' }, v.titolo),
-          el('p', { class: 'tenue' }, tipoTesto(v) + (inPlaylist ? ' · in playlist' : ''))),
-        parti.chiudi),
-      el('div', { class: 'pannello-corpo' }, corpo),
-      el('div', { class: 'pannello-piede' }, parti.ripristina, parti.mostra));
+    testa.replaceChildren(
+      el('div', null,
+        el('h3', { id: 'pannello-titolo' }, v.titolo),
+        el('p', { class: 'tenue' }, tipoTesto(v) + (inPlaylist ? ' · in playlist' : ''))),
+      parti.chiudi);
+    controlli.replaceChildren(...corpo);
+    piede.replaceChildren(parti.ripristina, parti.mostra);
     aggiornaPiede(v);
     aggiornaAnteprima(true);
   }
@@ -301,7 +319,7 @@ window.BarraSfondo = function (d) {
     const chiuso = id;
     id = null;
     nodo.hidden = true;
-    nodo.replaceChildren();
+    [testa, bloccoAnteprima, controlli, piede].forEach((x) => x.replaceChildren());
     liberaAnteprima();
     if (d.alChiudere) d.alChiudere(chiuso);
   }

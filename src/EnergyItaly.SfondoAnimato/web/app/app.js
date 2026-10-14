@@ -182,7 +182,7 @@
   function riempi(media, v, contenitore) {
     const adatta = v.riempimento === 'adatta';
     media.style.objectFit = adatta ? 'contain' : 'cover';
-    if (adatta && contenitore) contenitore.style.background = '#000';
+    if (contenitore) contenitore.style.background = adatta ? '#000' : '';
     return media;
   }
 

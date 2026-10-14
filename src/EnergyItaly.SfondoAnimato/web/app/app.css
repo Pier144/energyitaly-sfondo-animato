@@ -177,6 +177,7 @@ body { display: flex; flex-direction: column; }
 .pannello-palco .adatta { object-fit: contain; background: #000; }
 .pannello-palco .miniatura { height: 100%; }
 .nota-anteprima { margin: 6px 0 0; }
+.pannello-controlli { display: flex; flex-direction: column; gap: 22px; }
 .gruppo-pannello { display: flex; flex-direction: column; gap: 10px; }
 .gruppo-pannello h4 { margin: 0; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; color: var(--tenue); }
 .tavolozze { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

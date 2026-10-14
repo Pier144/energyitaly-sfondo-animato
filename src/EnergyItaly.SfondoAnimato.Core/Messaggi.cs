@@ -78,14 +78,7 @@ public static class Messaggi
             opzioni = [];
             foreach (var kv in o.EnumerateObject())
             {
-                ValoreOpzione? valore = kv.Value.ValueKind switch
-                {
-                    JsonValueKind.Number => ValoreOpzione.DiNumero(kv.Value.GetDouble()),
-                    JsonValueKind.String => ValoreOpzione.DiTesto(kv.Value.GetString()!),
-                    JsonValueKind.True => ValoreOpzione.DiBooleano(true),
-                    JsonValueKind.False => ValoreOpzione.DiBooleano(false),
-                    _ => null
-                };
+                var valore = Personalizzazioni.ValoreDaJson(kv.Value);
                 // Un valore di tipo impossibile resta come testo vuoto: Applica lo rifiuta con un errore chiaro.
                 opzioni[kv.Name] = valore ?? ValoreOpzione.DiTesto("");
             }
@@ -101,7 +94,7 @@ public static class Messaggi
             using var doc = JsonDocument.Parse(json);
             var r = doc.RootElement;
             if (r.ValueKind != JsonValueKind.Object || Testo(r, "tipo") is not { } tipo) return null;
-            double? secondi = r.TryGetProperty("secondi", out var s) && s.ValueKind == JsonValueKind.Number ? s.GetDouble() : null;
+            double? secondi = r.TryGetProperty("secondi", out var s) && s.ValueKind == JsonValueKind.Number && s.TryGetDouble(out var d) ? d : null;
             return new EventoPlayer(tipo, Testo(r, "id"), Testo(r, "messaggio"), secondi);
         }
         catch (JsonException)

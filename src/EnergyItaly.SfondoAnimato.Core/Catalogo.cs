@@ -152,7 +152,7 @@ public static class Catalogo
             case TipoOpzione.Numero:
             {
                 double? min = Numero(o, "min"), max = Numero(o, "max"), passo = Numero(o, "passo");
-                double? predefinito = p.ValueKind == JsonValueKind.Number ? p.GetDouble() : null;
+                double? predefinito = p.ValueKind == JsonValueKind.Number && p.TryGetDouble(out var n) && double.IsFinite(n) ? n : null;
                 if (min is null || max is null || passo is null || predefinito is null || min >= max || passo <= 0 ||
                     predefinito < min || predefinito > max)
                     return Scarta("con limiti o predefinito non validi");
@@ -183,7 +183,7 @@ public static class Catalogo
     }
 
     static double? Numero(JsonElement e, string nome) =>
-        e.TryGetProperty(nome, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
+        e.TryGetProperty(nome, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var n) && double.IsFinite(n) ? n : null;
 
     /// <summary>Tavolozze del manifest; se non ce n'è nessuna valida, solo Energy Italy (spec personalizzazione 3.1).</summary>
     public static IReadOnlyList<Tavolozza> LeggiTavolozze(string manifestJson, List<string> avvisi)
