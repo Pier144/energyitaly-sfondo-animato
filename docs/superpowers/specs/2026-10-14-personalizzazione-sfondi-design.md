@@ -145,7 +145,7 @@ public sealed record ModifichePersonalizzazione(
 
 Una sola normalizzazione, usata sia al caricamento sia per i comandi:
 
-- **`Normalizza(Personalizzazione, Voce, tavolozze, avvisi)`**: un numero fuori limiti si porta al limite e si arrotonda al passo; un'opzione che non esiste più o ha il tipo sbagliato si toglie; una scelta non più ammessa si toglie; una tavolozza sconosciuta si toglie; `Fondo`/`Accento` si tengono solo con "personalizzata" e solo se validi; `Riempimento` si tiene solo per immagini e video; colori e opzioni solo per le animazioni; un valore uguale al predefinito si toglie. Ogni correzione aggiunge un avviso (solo nel log).
+- **`Normalizza(Personalizzazione, Voce, tavolozze, avvisi)`**: un numero fuori limiti si porta al limite e si arrotonda al passo; un'opzione che non esiste più o ha il tipo sbagliato si toglie; una scelta non più ammessa si toglie; una tavolozza sconosciuta si toglie; `Fondo`/`Accento` si tengono solo con "personalizzata" e solo se validi, e una "personalizzata" rimasta senza uno dei due colori torna alla tavolozza predefinita; `Riempimento` si tiene solo per immagini e video; colori e opzioni solo per le animazioni; un valore uguale al predefinito si toglie. Ogni correzione aggiunge un avviso (solo nel log).
 - **`Applica(Personalizzazione?, ModifichePersonalizzazione, Voce, tavolozze)`** restituisce `(Personalizzazione Risultato, string? Errore)`. È un errore (avviso mostrato nella finestra, nulla cambia) un campo che non vale per quel tipo di voce, un'opzione sconosciuta, un valore del tipo sbagliato, una scelta non ammessa, un colore non valido, un modo o riempimento sconosciuto. Altrimenti si applicano i campi e si chiama `Normalizza`. Scegliere una tavolozza diversa da "personalizzata" toglie `Fondo` e `Accento`. Passando a "personalizzata" senza colori si usano i colori della tavolozza effettiva fino a quel momento.
 - **`Riconcilia(dizionario, voci, tavolozze, avvisi)`**: toglie le voci di sfondi sconosciuti, normalizza le altre, toglie quelle vuote. Si chiama all'avvio e quando cambiano le voci (importazione, eliminazione).
 - **`Url(Voce, Personalizzazione?, tavolozze)`**: sostituisce `Catalogo.UrlBase`. Per le animazioni aggiunge colori e tutte le opzioni effettive (3.2); per gli altri tipi l'URL non cambia.
@@ -170,7 +170,7 @@ Una sola normalizzazione, usata sia al caricamento sia per i comandi:
 
 - `ComandoApp` guadagna `ModifichePersonalizzazione? Personalizzazione`. `LeggiComandoApp` legge l'oggetto `modifiche` come `ModificheImpostazioni` se `tipo` è `impostazioni` e come `ModifichePersonalizzazione` se `tipo` è `personalizza` (numeri JSON in `Numero`, stringhe in `Testo`, booleani in `Booleano`).
 - `mostra`: l'URL contiene già colori e opzioni; nuovo campo `riempimento` (`"riempi"` o `"adatta"`) per immagini e video.
-- `stato`: per ogni voce, `url` con la personalizzazione applicata, `opzioni` (lo schema), `personalizzazione` (oggetto come in `impostazioni.json`, o null), `modoMonitor` effettivo e `riempimento` effettivo. Una volta per messaggio: `tavolozze` e `modoGenerale` (la scelta di Impostazioni; `modo` resta quello effettivo dello sfondo in onda).
+- `stato`: per ogni voce, `url` con la personalizzazione applicata, `opzioni` (lo schema), `personalizzazione` (oggetto come in `impostazioni.json`, o null), `modoMonitor` effettivo e `riempimento` effettivo. Una volta per messaggio: `tavolozze`. La scelta generale resta in `impostazioni.modoMonitor`; `modo` diventa quello effettivo dello sfondo in onda.
 
 ### 4.5 Core: coordinatore
 
@@ -182,7 +182,8 @@ Una sola normalizzazione, usata sia al caricamento sia per i comandi:
   - `personalizza`: `Applica`; errore -> avviso e stato; altrimenti salva, poi `RinfrescaSeInOnda(id)`.
   - `ripristinaSfondo`: toglie la voce, salva, `RinfrescaSeInOnda(id)`.
   - `RinfrescaSeInOnda(id)`: se `id` è in onda e sono cambiati URL, riempimento o modo effettivo, `AggiornaDesktop(600)`. Sempre `InviaStato`.
-- `Ripristina()` (impostazioni aziendali) azzera anche le personalizzazioni e, se lo sfondo in onda era personalizzato, aggiorna il desktop con `AggiornaDesktop` (dissolvenza delle impostazioni).
+- **Avvio**: la disposizione si calcola dopo `motore.Avvia`, quando lo sfondo in onda è noto. L'evento `pronto` del player e il percorso di `FineVideo` in `CambiaImpostazioni` passano da `AggiornaDesktop(0)` invece che da `MandaMostra`.
+- `Ripristina()` (impostazioni aziendali) azzera anche le personalizzazioni, poi fa **un solo** confronto prima/dopo dello sfondo in onda (URL, riempimento, modo effettivo): se qualcosa è cambiato, `AggiornaDesktop` con la dissolvenza delle impostazioni; altrimenti, se è cambiata solo l'area, `layout`. Non chiama più `RicalcolaDisposizione(conDissolvenza: true)` a parte.
 - Eliminando uno sfondo importato si toglie anche la sua voce; importando, `Riconcilia` non cambia nulla per le voci nuove.
 
 ### 4.6 Player
@@ -217,13 +218,13 @@ Una sola normalizzazione, usata sia al caricamento sia per i comandi:
 - I pulsanti Estendi/Duplica del palco mostrano il modo effettivo dello sfondo in onda. Se lo sfondo ha una scelta sua, sono disattivati e sotto compare "Scelto per questo sfondo nella Libreria"; altrimenti cambiano la scelta generale, come oggi.
 
 **Impostazioni**
-- I pulsanti "Con più monitor" mostrano `modoGenerale`. La spiegazione aggiunge "Ogni sfondo può avere la sua scelta nella Libreria".
+- I pulsanti "Con più monitor" mostrano `impostazioni.modoMonitor` (la scelta generale). La spiegazione aggiunge "Ogni sfondo può avere la sua scelta nella Libreria".
 - La descrizione di "Ripristina impostazioni aziendali" diventa: "Intervallo, ordine, monitor, opzioni e personalizzazioni degli sfondi tornano alle scelte dell'IT. La libreria resta com'è."
 
 ### 4.8 Pagine di prova (`web/sviluppo`)
 
 - `prova-player.html`: costruisce gli URL dalle opzioni del manifest 2 (predefiniti) con i colori della prima tavolozza.
-- `prova-app.html` simula il programma: legge il manifest 2, tiene le personalizzazioni in memoria, risponde a `personalizza` e `ripristinaSfondo` con le stesse regole essenziali (tavolozze, limiti, valori uguali al predefinito tolti), costruisce gli URL come in 3.2 e manda `tavolozze`, `opzioni`, `personalizzazione`, `modoMonitor`, `riempimento` e `modoGenerale` nello stato. Basta per provare la finestra; le regole complete le provano i test del Core.
+- `prova-app.html` simula il programma: legge il manifest 2, tiene le personalizzazioni in memoria, risponde a `personalizza` e `ripristinaSfondo` con le stesse regole essenziali (tavolozze, limiti, valori uguali al predefinito tolti), costruisce gli URL come in 3.2 e manda `tavolozze`, `opzioni`, `personalizzazione`, `modoMonitor` e `riempimento` nello stato. Basta per provare la finestra; le regole complete le provano i test del Core.
 - `prova-due-schermi.html`: invariata (passa i parametri all'animazione).
 
 ## 5. Animazioni da aggiornare
