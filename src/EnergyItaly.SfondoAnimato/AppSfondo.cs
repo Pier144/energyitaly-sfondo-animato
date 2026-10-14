@@ -38,7 +38,8 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
     int tentativiAggancio;
     bool uscita;
 
-    public AppSfondo(bool apriFinestra, EventWaitHandle eventoApri)
+    /// <param name="dopoAggiornamento">Rilanciato dall'installer dopo un aggiornamento non riuscito: non si ritenta subito.</param>
+    public AppSfondo(bool apriFinestra, EventWaitHandle eventoApri, bool dopoAggiornamento)
     {
         if (SynchronizationContext.Current is not WindowsFormsSynchronizationContext)
             SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
@@ -110,7 +111,7 @@ sealed class AppSfondo : ApplicationContext, IVistaPlayer, IVistaApp, ISistema
         coord.Avvia(LettoreMonitor.Leggi());
         // Aggiornamento scaricato in una sessione precedente: all'accesso a Windows si installa prima di
         // mostrare lo sfondo (A5). L'uscita va in coda: parte appena Application.Run avvia il ciclo dei messaggi.
-        if (aggiornatore.AllAvvio(avvioAutomatico: !apriFinestra))
+        if (aggiornatore.AllAvvio(avvioAutomatico: !apriFinestra && !dopoAggiornamento))
         {
             contesto.Post(_ => Esci(), null);
             return;

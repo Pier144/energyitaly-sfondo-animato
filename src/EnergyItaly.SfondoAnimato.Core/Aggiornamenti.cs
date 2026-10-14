@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -78,7 +79,7 @@ public static partial class Aggiornamenti
     }
 
     /// <summary>true se la versione pubblicata è più nuova di quella in uso.</summary>
-    public static bool PiuNuova(InfoVersione? info, Version inUso) => info is not null && info.Versione > inUso;
+    public static bool PiuNuova([NotNullWhen(true)] InfoVersione? info, Version inUso) => info is not null && info.Versione > inUso;
 
     /// <summary>
     /// Indirizzo finale di un download (dopo i reindirizzamenti) accettabile: HTTPS e le release di questo

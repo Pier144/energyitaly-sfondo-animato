@@ -27,7 +27,9 @@ $props = $props -replace '<Version>[^<]+</Version>', "<Version>$Versione</Versio
 [IO.File]::WriteAllText((Join-Path (Get-Location) 'Directory.Build.props'), $props)
 git add Directory.Build.props
 git commit -m "Versione $Versione"
+if ($LASTEXITCODE -ne 0) { Ferma "Commit non riuscito: nessun tag creato" }
 git tag -a "v$Versione" -m "Versione $Versione"
+if ($LASTEXITCODE -ne 0) { Ferma "Tag non creato: il commit 'Versione $Versione' è solo in locale" }
 git push --atomic origin main "v$Versione"
 if ($LASTEXITCODE -ne 0) { Ferma "Invio non riuscito: il commit e il tag sono solo in locale, riprova con: git push --atomic origin main v$Versione" }
 Write-Host "Versione $Versione inviata: la release la pubblica GitHub Actions (scheda Actions del repository)." -ForegroundColor Green

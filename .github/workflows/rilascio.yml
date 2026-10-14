@@ -17,18 +17,21 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      # Azioni fissate a un commit (spec 6): un'etichetta come v4 si può spostare.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
       - name: Controlli sul tag
         id: versione
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          $tag = "${{ github.ref_name }}"
+          $tag = $env:TAG
           if ($tag -notmatch '^v(\d+\.\d+\.\d+)$') { throw "Il tag '$tag' non è nel formato vX.Y.Z" }
           $versione = $Matches[1]
           [xml]$props = Get-Content Directory.Build.props
@@ -51,7 +54,7 @@ jobs:
           if (-not (Test-Path $iscc)) {
             choco install innosetup --version=6.4.3 -y --no-progress
             if ($LASTEXITCODE -ne 0) { throw "Installazione di Inno Setup non riuscita" }
-            $iscc = @(Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe")[0].FullName
+            $iscc = @(Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue)[0].FullName
             if (-not $iscc) { throw "ISCC.exe non trovato dopo l'installazione di Inno Setup" }
           }
           & $iscc "/DVersione=${{ steps.versione.outputs.versione }}" installer\SfondoAnimato.iss

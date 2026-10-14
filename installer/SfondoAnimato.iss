@@ -102,7 +102,8 @@ begin
 end;
 
 // Aggiornamento silenzioso non riuscito: il programma (uscito per farsi aggiornare) riparte con la
-// versione di prima, invece di restare spento fino al prossimo accesso.
+// versione di prima, invece di restare spento fino al prossimo accesso. --dopo-aggiornamento gli dice di
+// non ritentare subito e di aspettare che la copia vecchia sia uscita; con /APRI=1 riapre la finestra.
 procedure DeinitializeSetup();
 var
   Codice: Integer;
@@ -111,7 +112,7 @@ begin
   begin
     try
       if FileExists(ExpandConstant('{app}\{#Eseguibile}')) then
-        Exec(ExpandConstant('{app}\{#Eseguibile}'), '--avvio', '', SW_SHOWNORMAL, ewNoWait, Codice);
+        Exec(ExpandConstant('{app}\{#Eseguibile}'), Trim(ParametriRiavvio('') + ' --dopo-aggiornamento'), '', SW_SHOWNORMAL, ewNoWait, Codice);
     except
       Log('Programma non rilanciato: ' + GetExceptionMessage);
     end;

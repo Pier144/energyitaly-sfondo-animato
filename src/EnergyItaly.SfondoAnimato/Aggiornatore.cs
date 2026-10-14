@@ -174,16 +174,16 @@ sealed class Aggiornatore : IDisposable
             else if (!CopiaInstallata)
             {
                 // Copia di sviluppo: si dice soltanto che c'è (A7), senza scaricare né scrivere nulla.
-                disponibileInSviluppo = info!.Versione;
+                disponibileInSviluppo = info.Versione;
                 log.Info($"Aggiornamento: disponibile la {info.Versione.ToString(3)} (copia di sviluppo, non si scarica)");
             }
-            else if (stato.Pronta == info && File.Exists(PercorsoInstaller(info!)))
+            else if (stato.Pronta == info && File.Exists(PercorsoInstaller(info)))
             {
-                log.Info($"Aggiornamento: la {info!.Versione.ToString(3)} è già scaricata");
+                log.Info($"Aggiornamento: la {info.Versione.ToString(3)} è già scaricata");
             }
             else
             {
-                await ScaricaAsync(info!);
+                await ScaricaAsync(info);
             }
         }
         catch (Exception ex)
@@ -228,7 +228,16 @@ sealed class Aggiornatore : IDisposable
                 if (risposta.Content.Headers.ContentLength > DimensioneMassima) throw new InvalidDataException("installer troppo grande");
                 await using var origine = await risposta.Content.ReadAsStreamAsync(limite.Token);
                 await using var destinazione = File.Create(parziale);
-                await origine.CopyToAsync(destinazione, limite.Token);
+                // Il limite si conta anche durante la copia: Content-Length può mancare.
+                var blocco = new byte[81920];
+                long totale = 0;
+                int letti;
+                while ((letti = await origine.ReadAsync(blocco, limite.Token)) > 0)
+                {
+                    totale += letti;
+                    if (totale > DimensioneMassima) throw new InvalidDataException("installer troppo grande");
+                    await destinazione.WriteAsync(blocco.AsMemory(0, letti), limite.Token);
+                }
             }
             if (!await Task.Run(() => ImprontaGiusta(parziale, info)))
                 throw new InvalidDataException("impronta SHA-256 diversa da versione.json");
@@ -269,7 +278,7 @@ sealed class Aggiornatore : IDisposable
         }
         catch (Exception ex)
         {
-            errore = Breve(ex);
+            // Non è un errore di controllo: conta come tentativo (A11) e va nel registro.
             log.Errore($"Aggiornamento: installazione non avviata ({ex.Message})");
             Cambiato?.Invoke();
             return false;
@@ -279,11 +288,12 @@ sealed class Aggiornatore : IDisposable
     /// <summary>Il messaggio "aggiornamenti" per la finestra (spec 4.6).</summary>
     public string MessaggioVista()
     {
+        // Prima ciò che chiede un'azione ("Installa ora"), poi l'errore dell'ultimo controllo.
         string s = inCorso ? "controllo"
             : !CopiaInstallata ? "sviluppo"
-            : errore is not null ? "errore"
             : Pronta is not null && TentativiFiniti ? "fallito"
             : Pronta is not null ? "pronto"
+            : errore is not null ? "errore"
             : "aggiornato";
         var nuova = CopiaInstallata ? Pronta?.Versione : disponibileInSviluppo;
         return Aggiornamenti.MessaggioVista(InUso, s, stato.UltimoControllo, nuova, errore);

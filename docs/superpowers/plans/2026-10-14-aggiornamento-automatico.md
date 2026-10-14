@@ -1204,6 +1204,8 @@ Write-Host "Versione $Versione inviata: la release la pubblica GitHub Actions (s
 - [ ] **Step 5: README**, nuova sezione "Pubblicare una versione": `powershell -File strumenti\nuova-versione.ps1 X.Y.Z`; cosa fa il workflow; dove si vede (scheda Actions, Releases); che i PC si aggiornano entro 6 ore se l'opzione è attiva; che la prima versione con aggiornamento automatico va installata a mano.
 - [ ] **Step 6: Commit** `Pubblicazione delle versioni con GitHub Actions`.
 
+> **Nota di esecuzione (2026-10-14), dopo la seconda revisione:** `--dopo-aggiornamento` (Program.cs attende il mutex fino a 10 s e lo passa ad `AppSfondo`, che non installa all'avvio in quel caso; il `.iss` lo aggiunge in `DeinitializeSetup` insieme a `ParametriRiavvio`); `MessaggioVista` mette "fallito" e "pronto" prima di "errore" e l'errore di avvio dell'installer non usa più `errore`; limite di 500 MB contato durante la copia; `[NotNullWhen(true)]` su `PiuNuova`; azioni del workflow fissate per SHA, tag passato con `env:`, ricerca di ISCC tollerante; lo script si ferma se commit o tag falliscono. Prova dello script (Task 6 step 4): con `main` avanti rispetto a `origin/main` il rifiuto atteso per `1.0.0` è "main non è allineato", non "non più alta". Copia di sviluppo (Task 7 step 1): lo stato è sempre "sviluppo", con l'errore del controllo in coda al testo.
+
 ## Chunk 4: Consegna
 
 ### Task 7: verifica, repository pubblico, prima versione

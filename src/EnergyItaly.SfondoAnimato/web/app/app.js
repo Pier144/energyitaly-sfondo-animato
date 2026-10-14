@@ -734,7 +734,11 @@
         break;
       case 'errore': testo = `Ultimo controllo non riuscito (${a.errore})`; break;
       case 'fallito': testo = `Installazione della ${a.versioneNuova} non riuscita: prova Installa ora o contatta l'IT`; break;
-      case 'sviluppo': testo = 'Copia di sviluppo: non si installa nulla' + (a.versioneNuova ? ` · disponibile la ${a.versioneNuova}` : ''); break;
+      case 'sviluppo':
+        testo = 'Copia di sviluppo: non si installa nulla'
+          + (a.versioneNuova ? ` · disponibile la ${a.versioneNuova}` : '')
+          + (a.errore ? ` · ultimo controllo non riuscito (${a.errore})` : '');
+        break;
       default: testo = a.ultimoControllo ? 'Aggiornato · ultimo controllo ' + quando(a.ultimoControllo) : 'Nessun controllo ancora fatto';
     }
     $('#titolo-versione').textContent = 'Versione ' + a.versione;

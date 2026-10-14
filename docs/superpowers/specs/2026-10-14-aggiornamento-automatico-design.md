@@ -53,7 +53,8 @@ Quando si pubblica una nuova versione del programma, i PC su cui è installato l
 
 - `#define Versione "1.0.0"` diventa `#ifndef Versione` / `#define Versione "1.0.0"` / `#endif`: la versione arriva da `/DVersione=`.
 - La riga `[Run]` silenziosa diventa `Parameters: "{code:ParametriRiavvio}"`: restituisce `--avvio`, oppure stringa vuota se l'installer è stato lanciato con `/APRI=1` (il programma riparte con la finestra aperta, usato da "Installa ora").
-- `[Code]`: `CurStepChanged(ssPostInstall)` segna l'installazione come riuscita; `DeinitializeSetup`, solo in modalità silenziosa e solo se l'installazione **non** è riuscita, rilancia `{app}\SfondoAnimato.exe --avvio` (dentro `try/except`: se `{app}` non è ancora noto non fa nulla). Così un aggiornamento fallito lascia il programma acceso con la versione vecchia.
+- `[Code]`: `CurStepChanged(ssPostInstall)` segna l'installazione come riuscita; `DeinitializeSetup`, solo in modalità silenziosa e solo se l'installazione **non** è riuscita, rilancia `{app}\SfondoAnimato.exe` con gli stessi argomenti di `ParametriRiavvio` più `--dopo-aggiornamento` (dentro `try/except`: se `{app}` non è ancora noto non fa nulla). Così un aggiornamento fallito lascia il programma acceso con la versione vecchia (con la finestra aperta se era "Installa ora").
+- `--dopo-aggiornamento` dice al programma di non ritentare subito l'installazione (il tentativo successivo avviene al prossimo accesso o al prossimo momento buono) e di aspettare fino a 10 secondi il mutex dell'istanza unica, se la copia vecchia non è ancora uscita.
 
 ### 3.4 `versione.json`
 
@@ -103,7 +104,7 @@ public static class Aggiornamenti
 - `HttpClient` con il proxy di sistema e le credenziali dell'utente (`DefaultProxyCredentials = CredentialCache.DefaultCredentials`), `User-Agent: EnergyItaly-SfondoAnimato/<versione>`.
 - **Avvio** (`AppSfondo`, prima di creare lo sfondo):
   1. pulizia (solo copia installata, anche con gli automatici spenti): file `*.part` rimasti; se `stato.json` ha un aggiornamento pronto di versione **minore o uguale** a quella in uso, si cancellano installer e voce (se uguale si registra `Aggiornamento: installata X.Y.Z`); se la versione pronta è più alta e `Tentativi > 0`, l'installazione precedente non è andata: si registra `Aggiornamento: installazione della X.Y.Z non riuscita (tentativo N)`;
-  2. se l'avvio è automatico (`--avvio`), gli automatici sono attivi, c'è un aggiornamento pronto più alto, `Tentativi < 2`, il file c'è e l'impronta coincide → installazione (4.4) e il programma esce senza mostrare sfondo né finestra.
+  2. se l'avvio è automatico (`--avvio` senza `--dopo-aggiornamento`), gli automatici sono attivi, c'è un aggiornamento pronto più alto, `Tentativi < 2`, il file c'è e l'impronta coincide → installazione (4.4) e il programma esce senza mostrare sfondo né finestra.
 - **Controllo**: ogni secondo `Tick()` confronta l'ora con `ProssimoControllo` (solo con gli automatici attivi); "Controlla ora" lo fa partire subito. Un solo controllo alla volta.
   1. `GET IndirizzoInfo` (30 s), indirizzo finale affidabile, `Leggi`;
   2. non più alta → "aggiornato" (copia installata: si dimentica un eventuale pronto superato);
@@ -111,7 +112,7 @@ public static class Aggiornamenti
   4. più alta e già scaricata (stessa `InfoVersione`, file presente) → nulla;
   5. altrimenti download in `.part` (10 min, massimo 500 MB, indirizzo finale affidabile), impronta, spostamento nel nome finale, `stato.json` con `Pronta` = nuova e `Tentativi` = 0; un installer pronto più vecchio si cancella;
   6. copia installata: `UltimoControllo` = adesso in ogni caso (anche se non riesce, così non si riprova a raffica).
-- **Durante la sessione** (copia installata, automatici attivi, aggiornamento pronto, `Tentativi < 2`, nessun controllo in corso): a ogni cambio dei segnali o della finestra si ricalcola `MomentoBuono`; quando diventa vero parte un'attesa di 60 secondi, annullata se nel frattempo torna falso; allo scadere, se è ancora vero e non è in corso una chiusura di sessione (`SystemEvents.SessionEnding` o `WM_QUERYENDSESSION` già ricevuti), si installa.
+- **Durante la sessione** (copia installata, automatici attivi, aggiornamento pronto, `Tentativi < 2`, nessun controllo in corso): a ogni cambio dei segnali o della finestra si ricalcola `MomentoBuono`; quando diventa vero parte un'attesa di 60 secondi, annullata se nel frattempo torna falso; allo scadere, se è ancora vero e non è in corso una chiusura di sessione (`SystemEvents.SessionEnding` o `WM_QUERYENDSESSION` già ricevuti), si installa. La chiusura di sessione resta segnata fino all'uscita del programma: se lo spegnimento viene annullato, durante quella sessione non si installa più (si installa al prossimo accesso).
 - **"Installa ora"** (copia installata, aggiornamento pronto, nessun controllo in corso): installa subito con `/APRI=1`, anche con gli automatici spenti e anche se `Tentativi` ha raggiunto il massimo.
 
 ### 4.3 App: collegamenti
@@ -146,7 +147,8 @@ Gruppo SISTEMA, prime due righe:
    - "Versione X.Y.Z pronta: si installa appena il desktop è coperto" (automatici attivi) oppure "Versione X.Y.Z disponibile" (automatici spenti);
    - "Ultimo controllo non riuscito (motivo breve)";
    - "Installazione della X.Y.Z non riuscita: prova Installa ora o contatta l'IT" (A11);
-   - "Copia di sviluppo: non si installa nulla", con " · disponibile la X.Y.Z" se un controllo l'ha trovata;
+   - "Copia di sviluppo: non si installa nulla", con " · disponibile la X.Y.Z" se un controllo l'ha trovata e " · ultimo controllo non riuscito (motivo)" se l'ultimo controllo è fallito;
+   - priorità quando valgono più stati: controllo in corso, copia di sviluppo, installazione non riuscita, pronto, errore dell'ultimo controllo, aggiornato (chi chiede un'azione viene prima dell'errore). Un errore nell'avviare l'installer non è un errore di controllo: conta come tentativo e va nel registro;
    - a destra "Controlla ora" (disattivato durante un controllo) oppure, con un aggiornamento pronto nella copia installata e automatici spenti o installazione non riuscita, "Installa ora".
 
 Messaggi:

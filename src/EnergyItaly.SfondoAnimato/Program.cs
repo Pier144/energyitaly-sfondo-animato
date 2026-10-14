@@ -12,7 +12,11 @@ static class Program
     static int Main(string[] args)
     {
         bool avvioAutomatico = args.Contains("--avvio", StringComparer.OrdinalIgnoreCase);
+        // Rilanciato dall'installer dopo un aggiornamento non riuscito (installer, DeinitializeSetup).
+        bool dopoAggiornamento = args.Contains("--dopo-aggiornamento", StringComparer.OrdinalIgnoreCase);
         using var mutex = new Mutex(true, NomeMutex, out bool primaIstanza);
+        // In quel caso la copia vecchia può non essere ancora uscita: la si aspetta invece di arrendersi.
+        if (!primaIstanza && dopoAggiornamento) primaIstanza = AttendiMutex(mutex);
         // L'evento esiste da subito: anche una seconda istanza lanciata durante l'avvio della prima la trova.
         using var eventoApri = new EventWaitHandle(false, EventResetMode.AutoReset, NomeEventoApri);
         if (!primaIstanza)
@@ -47,7 +51,7 @@ static class Program
         AppSfondo app;
         try
         {
-            app = new AppSfondo(apriFinestra: !avvioAutomatico, eventoApri);
+            app = new AppSfondo(apriFinestra: !avvioAutomatico, eventoApri, dopoAggiornamento);
         }
         catch (Exception ex)
         {
@@ -58,6 +62,12 @@ static class Program
         }
         Application.Run(app);
         return 0;
+    }
+
+    static bool AttendiMutex(Mutex mutex)
+    {
+        try { return mutex.WaitOne(TimeSpan.FromSeconds(10)); }
+        catch (AbandonedMutexException) { return true; }
     }
 
     static void RegistraErrore(string testo)
