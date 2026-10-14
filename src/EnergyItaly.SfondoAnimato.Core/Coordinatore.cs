@@ -22,6 +22,10 @@ public sealed class Coordinatore
     Impostazioni imp = new();
     IReadOnlyList<Monitor> monitor = [];
     Disposizione disposizione = LayoutMonitor.Calcola([], ModoMonitor.Estendi);
+    IReadOnlyList<Tavolozza> tavolozze = [Personalizzazioni.EnergyItaly];
+
+    /// <summary>Dissolvenza breve quando cambia la personalizzazione dello sfondo in onda (spec personalizzazione P8).</summary>
+    const int DissolvenzaPersonalizzazioneMs = 600;
     SegnaliSistema segnali = new();
     DecisionePausa decisione = DecisionePausa.Nessuna;
     bool playerPronto;
@@ -61,25 +65,28 @@ public sealed class Coordinatore
         }
         RiprovaCancellazioni();
         RicaricaVoci(avvisi);
+        tavolozze = Catalogo.LeggiTavolozze(manifestJson, avvisi);
         var idValidi = voci.Select(v => v.Id).ToList();
         var playlistDiBase = voci.Where(v => v.Aziendale).Select(v => v.Id).ToList();
         predefinite = ArchivioImpostazioni.Predefinite(predefiniteJson, idValidi, playlistDiBase, avvisi);
         imp = ArchivioImpostazioni.Carica(Leggi(archivio.LeggiImpostazioni, "impostazioni.json"), predefinite, idValidi, avvisi);
+        imp = imp with { Personalizzazioni = Personalizzazioni.Riconcilia(imp.Personalizzazioni, voci, tavolozze, avvisi) };
         foreach (var a in avvisi) log.Avviso(a);
         (imp, var nuovi) = imp.AccogliNuoviSfondi(playlistDiBase, predefinite.Playlist);
         if (nuovi.Count > 0) log.Info($"Nuovi sfondi aziendali in playlist: {string.Join(", ", nuovi)}");
         predefinite = predefinite with { SfondiAziendaliVisti = playlistDiBase };
 
         monitor = monitorIniziali;
-        disposizione = LayoutMonitor.Calcola(monitor, imp.ModoMonitor);
-        log.Info(DescriviMonitor());
-        player.ImpostaArea(disposizione.Finestra);
-
         motore.AggiornaVoci(voci, imp.Playlist);
         motore.AggiornaRegole(Regole(), riavvia: true);
         motore.Avvia(imp.UltimaVoce);
         if (motore.Corrente is { } c) log.Info($"Primo sfondo: {c.Titolo}");
         else log.Errore("Nessuno sfondo disponibile da mostrare");
+
+        // Dopo motore.Avvia: la disposizione dipende dallo sfondo in onda (spec personalizzazione 4.5).
+        disposizione = CalcolaDisposizione();
+        log.Info(DescriviMonitor());
+        player.ImpostaArea(disposizione.Finestra);
 
         try { sistema.ImpostaAvvioConWindows(imp.AvvioConWindows); }
         catch (Exception ex) { log.Errore($"Avvio con Windows non impostato: {ex.Message}"); }
@@ -129,7 +136,7 @@ public sealed class Coordinatore
     void DopoCambio()
     {
         SalvaUltima();
-        MandaMostra(imp.DissolvenzaSecondi * 1000);
+        AggiornaDesktop(imp.DissolvenzaSecondi * 1000);
         if (motore.Corrente is { } c) log.Info($"Sfondo: {c.Titolo}");
         AggiornaIcona();
         InviaStato();
@@ -151,7 +158,7 @@ public sealed class Coordinatore
         {
             case "pronto":
                 playerPronto = true;
-                MandaMostra(0);
+                AggiornaDesktop(0);
                 if (decisione.Livello != LivelloPausa.Nessuna) player.Invia(Messaggi.Semplice("pausa"));
                 break;
             case "mostrato":
@@ -198,11 +205,32 @@ public sealed class Coordinatore
         InviaStato();
     }
 
+    Personalizzazione? PersonalizzazioneDi(string? id) =>
+        id is not null && imp.Personalizzazioni.TryGetValue(id, out var p) ? p : null;
+
+    /// <summary>Disposizione con il modo dello sfondo in onda (spec personalizzazione P5); non manda niente.</summary>
+    Disposizione CalcolaDisposizione() =>
+        LayoutMonitor.Calcola(monitor, Personalizzazioni.ModoEffettivo(PersonalizzazioneDi(motore.Corrente?.Id), imp.ModoMonitor));
+
+    /// <summary>Unico punto che manda lo sfondo al player: ricalcola la disposizione e manda un solo "mostra".</summary>
+    void AggiornaDesktop(int dissolvenzaMs)
+    {
+        var nuova = CalcolaDisposizione();
+        bool areaCambiata = nuova.Finestra != disposizione.Finestra;
+        bool cambiata = !Uguale(nuova, disposizione);
+        disposizione = nuova;
+        if (cambiata) log.Info(DescriviMonitor());
+        if (areaCambiata) player.ImpostaArea(nuova.Finestra);
+        MandaMostra(dissolvenzaMs);
+    }
+
     void MandaMostra(int dissolvenzaMs)
     {
         if (!playerPronto || motore.Corrente is not { } c) return;
         bool fineVideo = imp.FineVideo && imp.RotazioneAttiva;
-        player.Invia(Messaggi.Mostra(c, Catalogo.UrlFile(c), Riempimento.Riempi, disposizione, dissolvenzaMs, fineVideo));
+        var p = PersonalizzazioneDi(c.Id);
+        player.Invia(Messaggi.Mostra(c, Personalizzazioni.Url(c, p, tavolozze), Personalizzazioni.RiempimentoEffettivo(p),
+            disposizione, dissolvenzaMs, fineVideo));
     }
 
     // ---------- Finestra principale ----------
@@ -228,6 +256,11 @@ public sealed class Coordinatore
             case "elimina": if (c.Id is not null) Elimina(c.Id); break;
             case "apriLog": sistema.ApriCartellaLog(); break;
             case "ripristina": Ripristina(); break;
+            case "personalizza":
+                if (c.Id is not null && c.Personalizzazione is not null) Personalizza(c.Id, c.Personalizzazione);
+                else InviaStato();
+                break;
+            case "ripristinaSfondo": if (c.Id is not null) RipristinaSfondo(c.Id); break;
             default: log.Avviso($"Comando della finestra non riconosciuto: {c.Tipo}"); break;
         }
     }
@@ -257,11 +290,11 @@ public sealed class Coordinatore
 
         bool tempoCambiato = vecchia.Intervallo != nuova.Intervallo || vecchia.FineVideo != nuova.FineVideo;
         if (tempoCambiato || vecchia.Ordine != nuova.Ordine) motore.AggiornaRegole(Regole(), riavvia: tempoCambiato);
-        if (vecchia.ModoMonitor != nuova.ModoMonitor) RicalcolaDisposizione(conDissolvenza: true);
-        else if (vecchia.FineVideo != nuova.FineVideo || vecchia.RotazioneAttiva != nuova.RotazioneAttiva)
-        {
-            if (motore.Corrente?.Tipo == TipoVoce.Video) MandaMostra(0);
-        }
+        bool mandato = vecchia.ModoMonitor != nuova.ModoMonitor && RicalcolaDisposizione(conDissolvenza: true);
+        // Il video va rimandato se cambia la fine del video, a meno che lo sfondo non sia appena partito di nuovo.
+        if (!mandato && (vecchia.FineVideo != nuova.FineVideo || vecchia.RotazioneAttiva != nuova.RotazioneAttiva) &&
+            motore.Corrente?.Tipo == TipoVoce.Video)
+            AggiornaDesktop(0);
         if (vecchia.PausaABatteria != nuova.PausaABatteria) RivalutaPausa();
         if (vecchia.AvvioConWindows != nuova.AvvioConWindows)
         {
@@ -315,6 +348,7 @@ public sealed class Coordinatore
         var playlist = imp.Playlist.Where(x => x != id).ToList();
         if (playlist.Count == 0) playlist = predefinite.Playlist.ToList();
         imp = imp with { Playlist = playlist };
+        ImpostaPersonalizzazione(id, new Personalizzazione());
         SalvaImpostazioni();
         motore.AggiornaVoci(voci, playlist);
         log.Info($"Eliminato dalla libreria: {voce.Titolo}");
@@ -325,6 +359,8 @@ public sealed class Coordinatore
 
     void Ripristina()
     {
+        var prima = Impronta();
+        // predefinite non ha personalizzazioni: si azzerano anche quelle (spec personalizzazione P9).
         imp = predefinite with { UltimaVoce = imp.UltimaVoce };
         SalvaImpostazioni();
         motore.AggiornaVoci(voci, imp.Playlist);
@@ -332,9 +368,60 @@ public sealed class Coordinatore
         try { sistema.ImpostaAvvioConWindows(imp.AvvioConWindows); }
         catch (Exception ex) { log.Errore($"Avvio con Windows non impostato: {ex.Message}"); }
         ImpostaAggiornamenti();
-        RicalcolaDisposizione(conDissolvenza: true);
+        // L'area dipende solo dai monitor, che qui non cambiano: basta confrontare ciò che si vede.
+        if (Impronta() != prima) AggiornaDesktop(imp.DissolvenzaSecondi * 1000);
         RivalutaPausa();
         InviaAvviso("Impostazioni aziendali ripristinate");
+        InviaStato();
+    }
+
+    // ---------- Personalizzazione degli sfondi ----------
+
+    /// <summary>Ciò che si vede ora: se cambia, il desktop va aggiornato.</summary>
+    (string Url, Riempimento Riempimento, ModoMonitor Modo)? Impronta()
+    {
+        if (motore.Corrente is not { } c) return null;
+        var p = PersonalizzazioneDi(c.Id);
+        return (Personalizzazioni.Url(c, p, tavolozze), Personalizzazioni.RiempimentoEffettivo(p), CalcolaDisposizione().ModoEffettivo);
+    }
+
+    void ImpostaPersonalizzazione(string id, Personalizzazione p)
+    {
+        var tutte = new Dictionary<string, Personalizzazione>(imp.Personalizzazioni);
+        if (p.Vuota) tutte.Remove(id);
+        else tutte[id] = p;
+        imp = imp with { Personalizzazioni = tutte };
+    }
+
+    void Personalizza(string id, ModifichePersonalizzazione m)
+    {
+        var v = voci.FirstOrDefault(x => x.Id == id);
+        if (v is null)
+        {
+            InviaAvviso("Questo sfondo non è disponibile");
+            InviaStato();
+            return;
+        }
+        var prima = Impronta();
+        var (nuova, errore) = Personalizzazioni.Applica(PersonalizzazioneDi(id), m, v, tavolozze);
+        if (errore is not null)
+        {
+            InviaAvviso(errore);
+            InviaStato();
+            return;
+        }
+        ImpostaPersonalizzazione(id, nuova);
+        SalvaImpostazioni();
+        if (Impronta() != prima) AggiornaDesktop(DissolvenzaPersonalizzazioneMs);
+        InviaStato();
+    }
+
+    void RipristinaSfondo(string id)
+    {
+        var prima = Impronta();
+        ImpostaPersonalizzazione(id, new Personalizzazione());
+        SalvaImpostazioni();
+        if (Impronta() != prima) AggiornaDesktop(DissolvenzaPersonalizzazioneMs);
         InviaStato();
     }
 
@@ -419,17 +506,25 @@ public sealed class Coordinatore
         RicalcolaDisposizione(conDissolvenza: false);
     }
 
-    void RicalcolaDisposizione(bool conDissolvenza)
+    /// <summary>Monitor o scelta generale cambiati. true se ha rimandato lo sfondo con "mostra".</summary>
+    bool RicalcolaDisposizione(bool conDissolvenza)
     {
-        var nuova = LayoutMonitor.Calcola(monitor, imp.ModoMonitor);
-        if (Uguale(nuova, disposizione)) return;
-        bool modoCambiato = nuova.ModoEffettivo != disposizione.ModoEffettivo;
-        disposizione = nuova;
-        log.Info(DescriviMonitor());
-        player.ImpostaArea(nuova.Finestra);
-        if (modoCambiato) MandaMostra(conDissolvenza ? imp.DissolvenzaSecondi * 1000 : 0);
-        else if (playerPronto) player.Invia(Messaggi.Layout(nuova));
+        var nuova = CalcolaDisposizione();
+        if (Uguale(nuova, disposizione)) return false;
+        bool mandato = nuova.ModoEffettivo != disposizione.ModoEffettivo;
+        if (mandato)
+        {
+            AggiornaDesktop(conDissolvenza ? imp.DissolvenzaSecondi * 1000 : 0);
+        }
+        else
+        {
+            disposizione = nuova;
+            log.Info(DescriviMonitor());
+            player.ImpostaArea(nuova.Finestra);
+            if (playerPronto) player.Invia(Messaggi.Layout(nuova));
+        }
         InviaStato();
+        return mandato;
     }
 
     static bool Uguale(Disposizione a, Disposizione b) =>
@@ -553,7 +648,8 @@ public sealed class Coordinatore
         Millisecondi(motore.Totale),
         motore.Totale is not null && !motore.InPausaManuale,
         motore.AttendeFineVideo,
-        disposizione);
+        disposizione,
+        tavolozze);
 
     static long? Millisecondi(TimeSpan? t) => t is null ? null : (long)t.Value.TotalMilliseconds;
 }

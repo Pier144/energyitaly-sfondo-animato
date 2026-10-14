@@ -7,10 +7,15 @@ namespace EnergyItaly.SfondoAnimato.Core.Tests;
 public class CoordinatoreTests
 {
     const string Manifest = """
-        { "versione": 1, "animazioni": [
-          { "id": "a", "titolo": "A", "file": "a.html", "parametri": {} },
-          { "id": "b", "titolo": "B", "file": "b.html", "parametri": {} },
-          { "id": "c", "titolo": "C", "file": "c.html", "parametri": {} } ] }
+        { "versione": 2,
+          "tavolozze": [
+            { "id": "energy-italy", "titolo": "Energy Italy", "fondo": "#0f1e35", "accento": "#7ab52a", "secondario": "#1e5b8e" },
+            { "id": "notte", "titolo": "Notte", "fondo": "#05070d", "accento": "#4a90c8", "secondario": "#2b3a55" } ],
+          "animazioni": [
+          { "id": "a", "titolo": "A", "file": "a.html", "opzioni": [
+            { "id": "velocita", "titolo": "Velocità", "tipo": "numero", "min": 0.5, "max": 2, "passo": 0.25, "predefinito": 1 } ] },
+          { "id": "b", "titolo": "B", "file": "b.html" },
+          { "id": "c", "titolo": "C", "file": "c.html" } ] }
         """;
 
     static readonly Monitor Principale = new("DISPLAY2", new Rettangolo(0, 0, 1920, 1080), true);
@@ -100,6 +105,193 @@ public class CoordinatoreTests
 
         Assert.Equal(new[] { "a", "b", "c" }, c.Impostazioni.Playlist);
         Assert.Equal(new[] { "a", "b", "c" }, c.Impostazioni.SfondiAziendaliVisti);
+    }
+
+    static JsonElement VoceDiStato(JsonElement stato, string id) =>
+        stato.GetProperty("voci").EnumerateArray().First(v => v.GetProperty("id").GetString() == id);
+
+    [Fact]
+    public void CambioSfondo_UnSoloMostra()
+    {
+        var c = Avvia();
+        var prima = player.DiTipo("mostra").Count();
+
+        c.Successivo();
+
+        Assert.Equal(prima + 1, player.DiTipo("mostra").Count());
+    }
+
+    [Fact]
+    public void ModoGenerale_UnSoloMostra()
+    {
+        var c = Avvia();
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "impostazioni", modifiche = new { modoMonitor = "duplica" } }));
+
+        Assert.Equal(prima + 1, player.DiTipo("mostra").Count());
+    }
+
+    [Fact]
+    public void Personalizza_SfondoInOnda_UnMostraDa600ms()
+    {
+        var c = Avvia();
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "personalizza", id = "a", modifiche = new { tavolozza = "notte", opzioni = new { velocita = 1.5 } } }));
+
+        Assert.Equal(prima + 1, player.DiTipo("mostra").Count());
+        var m = player.Ultimo("mostra");
+        Assert.Equal(600, m.GetProperty("dissolvenzaMs").GetInt32());
+        Assert.Contains("fondo=05070d", m.GetProperty("url").GetString());
+        Assert.Contains("velocita=1.5", m.GetProperty("url").GetString());
+        Assert.Contains("\"tavolozza\": \"notte\"", archivio.Impostazioni);
+        Assert.NotEqual(JsonValueKind.Null, VoceDiStato(app.UltimoStato, "a").GetProperty("personalizzazione").ValueKind);
+    }
+
+    [Fact]
+    public void Personalizza_SoloModoDelloSfondoInOnda()
+    {
+        var c = Avvia();
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "personalizza", id = "a", modifiche = new { modoMonitor = "duplica" } }));
+
+        Assert.Equal(prima + 1, player.DiTipo("mostra").Count());
+        var m = player.Ultimo("mostra");
+        Assert.Equal("duplica", m.GetProperty("modo").GetString());
+        Assert.Equal(600, m.GetProperty("dissolvenzaMs").GetInt32());
+        Assert.Equal("duplica", app.UltimoStato.GetProperty("modo").GetString());
+    }
+
+    [Fact]
+    public void Personalizza_SoloModoConUnMonitor_NessunMostra()
+    {
+        var c = Avvia(null, Principale);
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "personalizza", id = "a", modifiche = new { modoMonitor = "duplica" } }));
+
+        Assert.Equal(prima, player.DiTipo("mostra").Count());
+        Assert.Equal("duplica", VoceDiStato(app.UltimoStato, "a").GetProperty("modoMonitor").GetString());
+    }
+
+    [Fact]
+    public void Personalizza_SfondoNonInOnda_NessunMostra()
+    {
+        var c = Avvia();
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "personalizza", id = "b", modifiche = new { modoMonitor = "duplica" } }));
+
+        Assert.Equal(prima, player.DiTipo("mostra").Count());
+        Assert.Equal("duplica", VoceDiStato(app.UltimoStato, "b").GetProperty("modoMonitor").GetString());
+    }
+
+    [Fact]
+    public void Personalizza_Errore_AvvisoENienteSalvato()
+    {
+        var c = Avvia();
+        c.DaApp(Comando(new { tipo = "personalizza", id = "a", modifiche = new { tavolozza = "sconosciuta" } }));
+
+        Assert.Contains("Tavolozza sconosciuta", app.Avvisi);
+        Assert.DoesNotContain("personalizzazioni", archivio.Impostazioni);
+    }
+
+    [Fact]
+    public void ModoDelloSfondo_SiApplicaQuandoVaInOnda()
+    {
+        var c = Avvia();
+        c.DaApp(Comando(new { tipo = "personalizza", id = "b", modifiche = new { modoMonitor = "duplica" } }));
+
+        c.Successivo();
+
+        var m = player.Ultimo("mostra");
+        Assert.Equal("b", m.GetProperty("id").GetString());
+        Assert.Equal("duplica", m.GetProperty("modo").GetString());
+        Assert.Equal(2, m.GetProperty("scene").GetArrayLength());
+
+        c.Successivo();
+        Assert.Equal("estendi", player.Ultimo("mostra").GetProperty("modo").GetString());
+    }
+
+    [Fact]
+    public void Avvio_UltimaVoceConModoSuo_PrimoMostraGiusto()
+    {
+        archivio.Impostazioni = """{ "versione": 2, "ultimaVoce": "a", "personalizzazioni": { "b": { "modoMonitor": "duplica" } } }""";
+
+        var c = Avvia();
+
+        Assert.Equal("b", c.Corrente?.Id);
+        Assert.Equal("duplica", player.Ultimo("mostra").GetProperty("modo").GetString());
+    }
+
+    [Fact]
+    public void Avvio_PersonalizzazioneDiSfondoSconosciuto_Tolta()
+    {
+        archivio.Impostazioni = """{ "versione": 2, "personalizzazioni": { "sparito": { "modoMonitor": "duplica" } } }""";
+
+        Avvia();
+
+        Assert.DoesNotContain("sparito", archivio.Impostazioni);
+        Assert.Contains(log.Righe, r => r.Contains("sparito"));
+    }
+
+    [Fact]
+    public void RipristinaSfondo_InOnda_UnMostraDa600ms()
+    {
+        var c = Avvia();
+        c.DaApp(Comando(new { tipo = "personalizza", id = "a", modifiche = new { tavolozza = "notte" } }));
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "ripristinaSfondo", id = "a" }));
+
+        Assert.Equal(prima + 1, player.DiTipo("mostra").Count());
+        var m = player.Ultimo("mostra");
+        Assert.Equal(600, m.GetProperty("dissolvenzaMs").GetInt32());
+        Assert.Contains("fondo=0f1e35", m.GetProperty("url").GetString());
+        Assert.Equal(JsonValueKind.Null, VoceDiStato(app.UltimoStato, "a").GetProperty("personalizzazione").ValueKind);
+    }
+
+    [Fact]
+    public void RipristinaSfondo_NonInOnda_NessunMostra()
+    {
+        var c = Avvia();
+        c.DaApp(Comando(new { tipo = "personalizza", id = "b", modifiche = new { modoMonitor = "duplica" } }));
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "ripristinaSfondo", id = "b" }));
+
+        Assert.Equal(prima, player.DiTipo("mostra").Count());
+        Assert.DoesNotContain("personalizzazioni", archivio.Impostazioni);
+    }
+
+    [Fact]
+    public void RipristinaAziendali_AzzeraLePersonalizzazioniEAggiornaIlDesktop()
+    {
+        var c = Avvia();
+        c.DaApp(Comando(new { tipo = "personalizza", id = "a", modifiche = new { tavolozza = "notte" } }));
+        var prima = player.DiTipo("mostra").Count();
+
+        c.DaApp(Comando(new { tipo = "ripristina" }));
+
+        Assert.Equal(prima + 1, player.DiTipo("mostra").Count());
+        Assert.Equal(2000, player.Ultimo("mostra").GetProperty("dissolvenzaMs").GetInt32());
+        Assert.DoesNotContain("personalizzazioni", archivio.Impostazioni);
+    }
+
+    [Fact]
+    public void EliminaSfondoImportato_TogliLaSuaPersonalizzazione()
+    {
+        archivio.Libreria = """{ "versione": 1, "voci": [ { "id": "u-f-aaaaaa", "tipo": "immagine", "titolo": "F", "file": "f.jpg" } ] }""";
+        archivio.FileLibreria.Add("f.jpg");
+        var c = Avvia();
+        c.DaApp(Comando(new { tipo = "personalizza", id = "u-f-aaaaaa", modifiche = new { riempimento = "adatta" } }));
+        Assert.Contains("u-f-aaaaaa", archivio.Impostazioni);
+
+        c.DaApp(Comando(new { tipo = "elimina", id = "u-f-aaaaaa" }));
+
+        Assert.DoesNotContain("u-f-aaaaaa", archivio.Impostazioni);
     }
 
     [Fact]
